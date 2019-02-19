@@ -1,5 +1,6 @@
 public class Fruit extends Food {
 
-  //TODO:
-  
+    public String eaten(Animal animal) {
+        return "fruit";
+    }
 }

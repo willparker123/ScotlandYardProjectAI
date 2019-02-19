@@ -1,5 +1,7 @@
 public class Cat extends Animal {
-
-  //TODO:
+    @Override
+    public String eat(Food food) {
+        return "cat eats "+food.eaten(this);
+    }
 
 }
