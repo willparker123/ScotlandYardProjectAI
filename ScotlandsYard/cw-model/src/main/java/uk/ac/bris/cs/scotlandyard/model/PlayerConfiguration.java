@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * Simple value object that stores initial configurations of a player.
  */
-public class PlayerConfiguration {
+public class PlayerConfiguration{
 
 	/**
 	 * The colour of the player
