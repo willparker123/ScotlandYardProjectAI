@@ -4,22 +4,39 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.ArrayList;
+import java.util.Objects;
 
 import uk.ac.bris.cs.gamekit.graph.Graph;
 
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
 
+	public List<Boolean> rounds;
+	public static Graph<Integer, Transport> graph;
+
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
-		// TODO
+
+		this.rounds = Objects.requireNonNull(rounds);
+		this.graph = Objects.requireNonNull(graph);
+
+		if (rounds.isEmpty()) {
+			throw new IllegalArgumentException("Empty rounds");
+		}
+
+		if (graph.getNodes().isEmpty()) {
+			throw new IllegalArgumentException("Empty graph");
+		}
+
 	}
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		// TODO
-		throw new RuntimeException("Implement me");
+
+		//for (Spectator s : )
+		throw new IllegalArgumentException();
 	}
 
 	@Override

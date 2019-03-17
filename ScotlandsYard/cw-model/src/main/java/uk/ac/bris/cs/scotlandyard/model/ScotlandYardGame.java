@@ -37,7 +37,7 @@ public interface ScotlandYardGame extends ScotlandYardView {
 	void startRotate();
 
 	/**
-	 * @return an immutable collection of all registered spectators in the game;
+	 * @return  animmutable collection of all registered spectators in the game;
 	 *         could be empty but never null
 	 */
 	Collection<Spectator> getSpectators();
