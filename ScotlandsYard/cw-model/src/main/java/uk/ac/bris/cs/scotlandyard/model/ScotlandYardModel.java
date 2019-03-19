@@ -25,6 +25,10 @@ import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import java.lang.Iterable;
 import java.util.Iterator;
 import uk.ac.bris.cs.gamekit.graph.Graph;
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+
+
 
 // TODO implement all methods and pass all tests
 public class ScotlandYardModel implements ScotlandYardGame {
@@ -33,7 +37,8 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	public List<Boolean> rounds;
 	public static Graph<Integer, Transport> graph;
 	public static Collection<Spectator> spectators = Collections.emptyList();
-	public ArrayList<PlayerConfiguration> players = new ArrayList<>();
+	public ArrayList<PlayerConfiguration> playerConfigurations = new ArrayList<>();
+	public ArrayList<ScotlandYardPlayer> players;
 
 	//initialising variables for duplicate checksum
 	private Set<Integer> setLocations = new HashSet<>();
@@ -57,22 +62,23 @@ public class ScotlandYardModel implements ScotlandYardGame {
 		}
 		else {
 			this.rounds = Objects.requireNonNull(rounds);
-			this.players.add(0,requireNonNull(mrX));
-			this.players.add(1,requireNonNull(firstDetective));
+			this.playerConfigurations.add(0,requireNonNull(mrX));
+			this.playerConfigurations.add(1,requireNonNull(firstDetective));
 
 			for (PlayerConfiguration detective : restOfTheDetectives) {
-				this.players.add(requireNonNull(detective));
+				this.playerConfigurations.add(requireNonNull(detective));
 			}
 
 			spectators.forEach(Objects::requireNonNull);
 		}
 		checkDuplicates();
 		checkTickets();
+		this.players = makeListPlayers(playerConfigurations);
 	}
 
-	//checks for duplicate locations and colours in the "players" set
+	//checks for duplicate locations and colours in the "playerConfigurations" set
 	public void checkDuplicates() {
-		for (PlayerConfiguration player : players) {
+		for (PlayerConfiguration player : playerConfigurations) {
 			if (setLocations.contains(player.location)) throw new IllegalArgumentException("Duplicate Player Location");
 			setLocations.add(player.location);
 			if (setColours.contains(player.colour)) throw new IllegalArgumentException("Duplicate Player Colour");
@@ -82,25 +88,37 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	//checks for invalid tickets and mappings
 	public void checkTickets() {
-		//ListIterator<PlayerConfiguration> xs = players.listIterator(1);
-		for (int i=0;i<players.size();i++) {
+		//ListIterator<PlayerConfiguration> xs = playerConfigurations.listIterator(1);
+		for (int i=0;i<playerConfigurations.size();i++) {
 			//all keys in the 'tickets' Map
-			Set<Ticket> tickets = players.get(i).tickets.keySet();
+			Set<Ticket> tickets = playerConfigurations.get(i).tickets.keySet();
+			Map<Ticket, Integer> ptickets = playerConfigurations.get(i).tickets;
 
 			if (tickets.size()!=5) {
 				throw new IllegalArgumentException("Map has missing tickets");
 			}
-			if (players.get(i).colour==BLACK && (players.get(i).tickets.get(TAXI)!=4
-					|| players.get(i).tickets.get(UNDERGROUND)!=3 || players.get(i).tickets.get(BUS)!=3
-					|| players.get(i).tickets.get(SECRET)!=5 || players.get(i).tickets.get(DOUBLE)!=2)) {
-				throw new IllegalArgumentException("Player MrX has missing tickets");
+			if (playerConfigurations.get(i).colour==BLACK && (ptickets.get(TAXI)!=4 || ptickets.get(UNDERGROUND)!=3
+					|| ptickets.get(BUS)!=3 || ptickets.get(SECRET)!=5 || ptickets.get(DOUBLE)!=2)) {
+				throw new IllegalArgumentException("Player MrX has missing/invalid tickets");
 			}
-			if (players.get(i).colour!=BLACK && (players.get(i).tickets.get(TAXI)!=11
-					|| players.get(i).tickets.get(UNDERGROUND)!=4 || players.get(i).tickets.get(BUS)!=8
-					|| players.get(i).tickets.get(DOUBLE)!=0 || players.get(i).tickets.get(SECRET)!=0)) {
-				throw new IllegalArgumentException("Player Detective has missing tickets");
+			if (playerConfigurations.get(i).colour!=BLACK && (ptickets.get(TAXI)!=11 || ptickets.get(UNDERGROUND)!=4
+					|| ptickets.get(BUS)!=8 || ptickets.get(DOUBLE)!=0 || ptickets.get(SECRET)!=0)) {
+				throw new IllegalArgumentException("Player Detective has missing/invalid tickets");
 			}
 		}
+	}
+
+	//method which turns the player configurations into a list of ScotlandYardPlayer objects
+	//Iterator pattern
+	public ArrayList<ScotlandYardPlayer> makeListPlayers(ArrayList<PlayerConfiguration> playerconfigs) {
+		ArrayList<ScotlandYardPlayer> list = new ArrayList<>();
+		Iterator<PlayerConfiguration> iterator = playerconfigs.iterator();
+		while (iterator.hasNext()) {
+			PlayerConfiguration x = iterator.next();
+			ScotlandYardPlayer player = new ScotlandYardPlayer(x.player, x.colour, x.location, x.tickets);
+			list.add(requireNonNull(player));
+		}
+		return list;
 	}
 
 	@Override
