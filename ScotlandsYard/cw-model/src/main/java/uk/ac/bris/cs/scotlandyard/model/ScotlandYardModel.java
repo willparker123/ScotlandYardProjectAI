@@ -89,19 +89,19 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	//checks for invalid tickets and mappings
 	public void checkTickets() {
 		//ListIterator<PlayerConfiguration> xs = playerConfigurations.listIterator(1);
-		for (int i=0;i<playerConfigurations.size();i++) {
+		for (PlayerConfiguration player : playerConfigurations) {
 			//all keys in the 'tickets' Map
-			Set<Ticket> tickets = playerConfigurations.get(i).tickets.keySet();
-			Map<Ticket, Integer> ptickets = playerConfigurations.get(i).tickets;
+			Set<Ticket> tickets = player.tickets.keySet();
+			Map<Ticket, Integer> ptickets = player.tickets;
 
 			if (tickets.size()!=5) {
 				throw new IllegalArgumentException("Map has missing tickets");
 			}
-			if (playerConfigurations.get(i).colour==BLACK && (ptickets.get(TAXI)!=4 || ptickets.get(UNDERGROUND)!=3
+			if (player.colour==BLACK && (ptickets.get(TAXI)!=4 || ptickets.get(UNDERGROUND)!=3
 					|| ptickets.get(BUS)!=3 || ptickets.get(SECRET)!=5 || ptickets.get(DOUBLE)!=2)) {
 				throw new IllegalArgumentException("Player MrX has missing/invalid tickets");
 			}
-			if (playerConfigurations.get(i).colour!=BLACK && (ptickets.get(TAXI)!=11 || ptickets.get(UNDERGROUND)!=4
+			if (player.colour!=BLACK && (ptickets.get(TAXI)!=11 || ptickets.get(UNDERGROUND)!=4
 					|| ptickets.get(BUS)!=8 || ptickets.get(DOUBLE)!=0 || ptickets.get(SECRET)!=0)) {
 				throw new IllegalArgumentException("Player Detective has missing/invalid tickets");
 			}
