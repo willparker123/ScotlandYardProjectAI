@@ -26,7 +26,9 @@ import java.lang.Iterable;
 import java.util.Iterator;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import com.google.common.collect.ImmutableMap;
+import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import java.util.Map;
+import com.google.common.collect.ImmutableSet;
 
 
 
@@ -35,10 +37,14 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	//initialising variables for model
 	public List<Boolean> rounds;
-	public static Graph<Integer, Transport> graph;
+	public ImmutableGraph<Integer, Transport> graph;
 	public static Collection<Spectator> spectators = Collections.emptyList();
 	public ArrayList<PlayerConfiguration> playerConfigurations = new ArrayList<>();
 	public ArrayList<ScotlandYardPlayer> players;
+	//index of the playerConfigurations/players array which is the current player
+	public int currentPlayerIndex = 0;
+	public int currentRoundIndex = 0;
+	public boolean gameOverBool = false;
 
 	//initialising variables for duplicate checksum
 	private Set<Integer> setLocations = new HashSet<>();
@@ -50,6 +56,7 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
 
+		this.graph = new ImmutableGraph<Integer, Transport>(graph);
 		//empty/null checksums for model variables
 		if (rounds.isEmpty()) {
 			throw new IllegalArgumentException("Empty Rounds");
@@ -97,13 +104,11 @@ public class ScotlandYardModel implements ScotlandYardGame {
 			if (tickets.size()!=5) {
 				throw new IllegalArgumentException("Map has missing tickets");
 			}
-			if (player.colour==BLACK && (ptickets.get(TAXI)!=4 || ptickets.get(UNDERGROUND)!=3
-					|| ptickets.get(BUS)!=3 || ptickets.get(SECRET)!=5 || ptickets.get(DOUBLE)!=2)) {
-				throw new IllegalArgumentException("Player MrX has missing/invalid tickets");
+			if (ptickets.size()!=5) {
+				throw new IllegalArgumentException("Player has missing tickets");
 			}
-			if (player.colour!=BLACK && (ptickets.get(TAXI)!=11 || ptickets.get(UNDERGROUND)!=4
-					|| ptickets.get(BUS)!=8 || ptickets.get(DOUBLE)!=0 || ptickets.get(SECRET)!=0)) {
-				throw new IllegalArgumentException("Player Detective has missing/invalid tickets");
+			if (player.colour!=BLACK && (ptickets.get(DOUBLE)!=0 || ptickets.get(SECRET)!=0)) {
+				throw new IllegalArgumentException("Player has invalid tickets");
 			}
 		}
 	}
@@ -148,56 +153,83 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public List<Colour> getPlayers() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		ArrayList<Colour> playerColours = new ArrayList<>();
+		Iterator<ScotlandYardPlayer> iterator = players.iterator();
+		while (iterator.hasNext()) {
+			ScotlandYardPlayer x = iterator.next();
+			Colour playerColour = x.colour();
+			playerColours.add(requireNonNull(playerColour));
+		}
+		return Collections.unmodifiableList(playerColours);
 	}
 
 	@Override
 	public Set<Colour> getWinningPlayers() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		Set<Colour> setWinners = new HashSet<Colour>();
+		setWinners = ImmutableSet.copyOf(setWinners);
+		return setWinners;
 	}
 
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		Iterator<ScotlandYardPlayer> iterator = players.iterator();
+		while (iterator.hasNext()) {
+			ScotlandYardPlayer x = iterator.next();
+			Colour playerColour = x.colour();
+			if (playerColour == colour) {
+				if (playerColour == BLACK) {
+					return Optional.of(0);
+				}
+				else {
+					Optional<Integer> optionalInt = Optional.of(x.location());
+					return optionalInt;
+				}
+
+			}
+		}
+		return Optional.empty();
 	}
 
 	@Override
 	public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
-		// TODO
-		throw new RuntimeException("Implement me");
+		Iterator<ScotlandYardPlayer> iterator = players.iterator();
+		while (iterator.hasNext()) {
+			ScotlandYardPlayer x = iterator.next();
+			Colour playerColour = x.colour();
+			if (playerColour == colour) {
+				try {
+					Optional<Integer> optionalInt = Objects.requireNonNull(Optional.of(x.tickets().get(ticket)));
+					return optionalInt;
+				} catch (Exception e) {
+					return Optional.empty();
+				}
+			}
+		}
+		return Optional.empty();
 	}
 
 	@Override
 	public boolean isGameOver() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return gameOverBool;
 	}
 
 	@Override
 	public Colour getCurrentPlayer() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return players.get(currentPlayerIndex).colour();
 	}
 
 	@Override
 	public int getCurrentRound() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return currentRoundIndex;
 	}
 
 	@Override
 	public List<Boolean> getRounds() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		return Collections.unmodifiableList(rounds);
 	}
 
 	@Override
-	public Graph<Integer, Transport> getGraph() {
-		// TODO
-		throw new RuntimeException("Implement me");
+	public ImmutableGraph<Integer, Transport> getGraph() {
+		return requireNonNull(graph);
 	}
-
 }
