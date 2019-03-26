@@ -33,7 +33,7 @@ import com.google.common.collect.ImmutableSet;
 
 
 // TODO implement all methods and pass all tests
-public class ScotlandYardModel implements ScotlandYardGame {
+public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	//initialising variables for model
 	public List<Boolean> rounds;
@@ -43,7 +43,9 @@ public class ScotlandYardModel implements ScotlandYardGame {
 	public ArrayList<ScotlandYardPlayer> players;
 	//index of the playerConfigurations/players array which is the current player
 	public int currentPlayerIndex = 0;
+	//index of the current round number
 	public int currentRoundIndex = 0;
+	//true if gameOver
 	public boolean gameOverBool = false;
 
 	//initialising variables for duplicate checksum
@@ -141,8 +143,28 @@ public class ScotlandYardModel implements ScotlandYardGame {
 
 	@Override
 	public void startRotate() {
-		// TODO
-		throw new RuntimeException("Implement me");
+		currentPlayerIndex = 0;
+		if (!gameOverBool) {
+			for (currentPlayerIndex=0; currentPlayerIndex < players.size(); currentPlayerIndex++) {
+				Colour cplayerColour = getCurrentPlayer();
+				ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+				Set<Move> cplayerMoves = new HashSet<Move>();
+				PassMove m = new PassMove(cplayerColour);
+				cplayerMoves.add(m);
+				cplayer.player().makeMove(this, cplayer.location(), cplayerMoves, this);
+
+				if (cplayerColour == BLACK) {
+					currentRoundIndex++;
+				}
+			}
+
+			currentRoundIndex++;
+		}
+	}
+
+	@Override
+	public void accept(Move move) {
+
 	}
 
 	@Override
