@@ -151,7 +151,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 				Set<Move> cplayerMoves = new HashSet<Move>();
 				PassMove m = new PassMove(cplayerColour);
 				cplayerMoves.add(m);
-				cplayer.player().makeMove(this, cplayer.location(), cplayerMoves, this);
+				cplayer.player().makeMove(Objects.requireNonNull(this), Objects.requireNonNull(cplayer.location()),
+						Objects.requireNonNull(cplayerMoves), Objects.requireNonNull(this));
 
 				if (cplayerColour == BLACK) {
 					currentRoundIndex++;
