@@ -148,9 +148,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			for (currentPlayerIndex=0; currentPlayerIndex < players.size(); currentPlayerIndex++) {
 				Colour cplayerColour = getCurrentPlayer();
 				ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-				Set<Move> cplayerMoves = new HashSet<Move>();
-				PassMove m = new PassMove(cplayerColour);
-				cplayerMoves.add(m);
+				ImmutableSet<Move> cplayerMoves = getValidMoves(cplayer);
+
 				cplayer.player().makeMove(Objects.requireNonNull(this), Objects.requireNonNull(cplayer.location()),
 						Objects.requireNonNull(cplayerMoves), Objects.requireNonNull(this));
 
@@ -158,14 +157,20 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 					currentRoundIndex++;
 				}
 			}
-
 			currentRoundIndex++;
 		}
 	}
 
 	@Override
 	public void accept(Move move) {
+		if (validMove(move))
+	}
 
+	public ImmutableSet<Move> getValidMoves(ScotlandYardPlayer cplayer) {
+		ImmutableSet<Move> cplayerMoves = new ImmutableSet<>();
+		PassMove m = new PassMove(cplayer.colour());
+		cplayerMoves.add(m);
+		return cplayerMoves;
 	}
 
 	@Override
