@@ -47,6 +47,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	public int currentRoundIndex = 0;
 	//true if gameOver
 	public boolean gameOverBool = false;
+	public boolean waitingForCallback = false;
 
 	//initialising variables for duplicate checksum
 	private Set<Integer> setLocations = new HashSet<>();
@@ -144,17 +145,27 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	@Override
 	public void startRotate() {
 		currentPlayerIndex = 0;
+		waitingForCallback = false;
 		if (!gameOverBool) {
-			for (currentPlayerIndex=0; currentPlayerIndex < players.size(); currentPlayerIndex++) {
-				Colour cplayerColour = getCurrentPlayer();
-				ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-				ImmutableSet<Move> cplayerMoves = getValidMoves(cplayer);
+			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) { //&& waitingForCallback==false
+				if (waitingForCallback==false) {
+					try {
+						waitingForCallback = true;
+						Colour cplayerColour = getCurrentPlayer();
+						ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+						Set<Move> cplayerMoves = getValidMoves();
 
-				cplayer.player().makeMove(Objects.requireNonNull(this), Objects.requireNonNull(cplayer.location()),
-						Objects.requireNonNull(cplayerMoves), Objects.requireNonNull(this));
+						if (cplayerColour == BLACK) {
+							currentRoundIndex++;
+						}
 
-				if (cplayerColour == BLACK) {
-					currentRoundIndex++;
+						cplayer.player().makeMove(Objects.requireNonNull(this), Objects.requireNonNull(cplayer.location()),
+								Objects.requireNonNull(cplayerMoves), Objects.requireNonNull(this));
+					} catch (IllegalArgumentException e) {
+						throw new IllegalArgumentException("Player tried to make an invalid move");
+					} catch (NullPointerException e) {
+						throw new NullPointerException("Player tried to make a null move");
+					}
 				}
 			}
 			currentRoundIndex++;
@@ -163,14 +174,27 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void accept(Move move) {
-		if (validMove(move))
+		if (!isValidMove(Objects.requireNonNull(move))) {
+			throw new IllegalArgumentException("Player tried to make an invalid move");
+		}
+		else {
+			waitingForCallback = false;
+		}
 	}
 
-	public ImmutableSet<Move> getValidMoves(ScotlandYardPlayer cplayer) {
-		ImmutableSet<Move> cplayerMoves = new ImmutableSet<>();
-		PassMove m = new PassMove(cplayer.colour());
+	public Set<Move> getValidMoves() {
+		Colour pcolour = getCurrentPlayer();
+		Set<Move> cplayerMoves = new HashSet<>();
+		PassMove m = new PassMove(pcolour);
 		cplayerMoves.add(m);
 		return cplayerMoves;
+	}
+
+	public boolean isValidMove(Move move) {
+		if (getValidMoves().contains(move)) {
+			return true;
+		}
+		else return false;
 	}
 
 	@Override
