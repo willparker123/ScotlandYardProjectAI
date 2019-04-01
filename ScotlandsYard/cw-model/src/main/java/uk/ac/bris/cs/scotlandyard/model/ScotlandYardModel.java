@@ -61,6 +61,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
 
+		currentRoundIndex = 0;
 		//empty/null checksums for model variables
 		if (rounds.isEmpty()) {
 			throw new IllegalArgumentException("Empty Rounds");
@@ -164,6 +165,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		else return false;
 	}
 
+	//returns true if the move is in the set of valid moves (made by getValidMoves)
 	public boolean isValidMove(Move move) {
 		if (getValidMoves().contains(move)) {
 			return true;
@@ -171,17 +173,16 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		else return false;
 	}
 
+	//returns a set of valid moves for a given
 	public Set<Move> getValidMoves() {
 		Set<Move> cplayerMoves = new HashSet<>();
-		Colour pcolour = getCurrentPlayer();
-		Optional<Integer> plocation = getPlayerLocation(pcolour);
+		Optional<Integer> plocation = getPlayerLocation(getCurrentPlayer());
 
-		Integer location;
-		location = plocation.get();
+		Integer location = plocation.get();
 		Node<Integer> nodeL = graph.getNode(location);
 		Collection<Edge<Integer, Transport>> c = new HashSet<>();
 
-		if (nodeL==null && currentRoundIndex<2) {
+		if (nodeL==null) {
 			c = graph.getEdges();
 		}
 		else {
@@ -194,8 +195,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			//if the reachable nodes dont have a player on them and the player has available tickets,
 			// add this node as a possible TicketMove
 			if (!destinationHasPlayer(edge.destination().value()) &&
-					(playerHasTicketsAvailable(pcolour, Ticket.fromTransport(edge.data())))) {
-				TicketMove t = new TicketMove(pcolour, Ticket.fromTransport(edge.data()), edge.destination().value());
+					(playerHasTicketsAvailable(getCurrentPlayer(), Ticket.fromTransport(edge.data())))) {
+				TicketMove t = new TicketMove(getCurrentPlayer(), Ticket.fromTransport(edge.data()), edge.destination().value());
 				cplayerMoves.add(t);
 			}
 		}
@@ -203,6 +204,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return cplayerMoves;
 	}
 
+	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
+	//make a move from the given list of valid moves
 	@Override
 	public void startRotate() {
 		currentPlayerIndex = 0;
@@ -211,35 +214,26 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) {
 				if (waitingForCallback==false) {
 						waitingForCallback = true;
-						Colour cplayerColour = getCurrentPlayer();
 						ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
 						Set<Move> cplayerMoves = getValidMoves();
-						/*
-						try {
-							cplayerMoves = getValidMoves();
-						} catch (NullPointerException e) {
-							throw new IllegalArgumentException("this is where its wrong - help");
-						}
-						 */
-
-						if (cplayerColour == BLACK) {
+						if (getCurrentPlayer() == BLACK) {
 							currentRoundIndex++;
 						}
-
-						cplayer.player().makeMove(this, cplayer.location(), cplayerMoves, this);
-						waitingForCallback = false;
+						cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
 				}
 			}
-			currentRoundIndex++;
 		}
 	}
 
+	//Consumer: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
+	//			also, finishes the waitingForCallback request
 	@Override
 	public void accept(Move move) {
-		if (!isValidMove(move)) {
+		if (move==null) {
+			throw new NullPointerException("Player tried to make a null move");
+		} else if (!isValidMove(move)) {
 			throw new IllegalArgumentException("Player tried to make an invalid move");
-		}
-		else {
+		} else {
 			waitingForCallback = false;
 		}
 	}
@@ -250,6 +244,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		throw new RuntimeException("Implement me");
 	}
 
+	//Iterator: Iterates through the list of ScotlandYardPlayers and creates a list of Colours in the same order
 	@Override
 	public List<Colour> getPlayers() {
 		ArrayList<Colour> playerColours = new ArrayList<>();
@@ -262,6 +257,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return Collections.unmodifiableList(playerColours);
 	}
 
+	//TO FINISH
 	@Override
 	public Set<Colour> getWinningPlayers() {
 		Set<Colour> setWinners = new HashSet<Colour>();
@@ -269,6 +265,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		return setWinners;
 	}
 
+	//iterates through 'players' to find a match to the argument Colour
 	@Override
 	public Optional<Integer> getPlayerLocation(Colour colour) {
 		Iterator<ScotlandYardPlayer> iterator = players.iterator();
