@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
+import uk.ac.bris.cs.gamekit.graph.Node;
 import java.lang.Iterable;
 import java.util.Iterator;
 import uk.ac.bris.cs.gamekit.graph.Graph;
@@ -29,6 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import java.util.Map;
 import com.google.common.collect.ImmutableSet;
+import java.util.NoSuchElementException;
 
 
 
@@ -40,7 +42,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	public ImmutableGraph<Integer, Transport> graph;
 	public static Collection<Spectator> spectators = Collections.emptyList();
 	public ArrayList<PlayerConfiguration> playerConfigurations = new ArrayList<>();
-	public ArrayList<ScotlandYardPlayer> players;
+	public ArrayList<ScotlandYardPlayer> players = new ArrayList<>();
 	//index of the playerConfigurations/players array which is the current player
 	public int currentPlayerIndex = 0;
 	//index of the current round number
@@ -59,7 +61,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
 			PlayerConfiguration... restOfTheDetectives) {
 
-		this.graph = new ImmutableGraph<Integer, Transport>(graph);
 		//empty/null checksums for model variables
 		if (rounds.isEmpty()) {
 			throw new IllegalArgumentException("Empty Rounds");
@@ -74,6 +75,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			this.rounds = Objects.requireNonNull(rounds);
 			this.playerConfigurations.add(0,requireNonNull(mrX));
 			this.playerConfigurations.add(1,requireNonNull(firstDetective));
+			this.graph = new ImmutableGraph<Integer, Transport>(graph);
 
 			for (PlayerConfiguration detective : restOfTheDetectives) {
 				this.playerConfigurations.add(requireNonNull(detective));
@@ -142,30 +144,90 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		throw new RuntimeException("Implement me");
 	}
 
+	//returns true if the destination with value 'i' has a player on it
+	public boolean destinationHasPlayer(int i) {
+		for (ScotlandYardPlayer p : players) {
+			if (p.location()==i) return true;
+		}
+		return false;
+	}
+
+	//returns true if the player has at least 1 ticket of the given ticket type
+	public boolean playerHasTicketsAvailable(Colour colour, Ticket ticket) {
+		int i;
+		try {
+			i = getPlayerTickets(colour, ticket).get();
+		} catch (NoSuchElementException e) {
+			i = 0;
+		}
+		if (i>0) return true;
+		else return false;
+	}
+
+	public boolean isValidMove(Move move) {
+		if (getValidMoves().contains(move)) {
+			return true;
+		}
+		else return false;
+	}
+
+	public Set<Move> getValidMoves() {
+		Set<Move> cplayerMoves = new HashSet<>();
+		Colour pcolour = getCurrentPlayer();
+		Optional<Integer> plocation = getPlayerLocation(pcolour);
+
+		Integer location;
+		location = plocation.get();
+		Node<Integer> nodeL = graph.getNode(location);
+		Collection<Edge<Integer, Transport>> c = new HashSet<>();
+
+		if (nodeL==null && currentRoundIndex<2) {
+			c = graph.getEdges();
+		}
+		else {
+			c = graph.getEdgesFrom(Objects.requireNonNull(nodeL));
+		}
+		//iterator that iterates over all the edges
+		Iterator<Edge<Integer, Transport>> iterator = c.iterator();
+		while (Objects.requireNonNull(iterator.hasNext())) {
+			Edge<Integer, Transport> edge = iterator.next();
+			//if the reachable nodes dont have a player on them and the player has available tickets,
+			// add this node as a possible TicketMove
+			if (!destinationHasPlayer(edge.destination().value()) &&
+					(playerHasTicketsAvailable(pcolour, Ticket.fromTransport(edge.data())))) {
+				TicketMove t = new TicketMove(pcolour, Ticket.fromTransport(edge.data()), edge.destination().value());
+				cplayerMoves.add(t);
+			}
+		}
+
+		return cplayerMoves;
+	}
+
 	@Override
 	public void startRotate() {
 		currentPlayerIndex = 0;
 		waitingForCallback = false;
 		if (!gameOverBool) {
-			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) { //&& waitingForCallback==false
+			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) {
 				if (waitingForCallback==false) {
-					try {
 						waitingForCallback = true;
 						Colour cplayerColour = getCurrentPlayer();
 						ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
 						Set<Move> cplayerMoves = getValidMoves();
+						/*
+						try {
+							cplayerMoves = getValidMoves();
+						} catch (NullPointerException e) {
+							throw new IllegalArgumentException("this is where its wrong - help");
+						}
+						 */
 
 						if (cplayerColour == BLACK) {
 							currentRoundIndex++;
 						}
 
-						cplayer.player().makeMove(Objects.requireNonNull(this), Objects.requireNonNull(cplayer.location()),
-								Objects.requireNonNull(cplayerMoves), Objects.requireNonNull(this));
-					} catch (IllegalArgumentException e) {
-						throw new IllegalArgumentException("Player tried to make an invalid move");
-					} catch (NullPointerException e) {
-						throw new NullPointerException("Player tried to make a null move");
-					}
+						cplayer.player().makeMove(this, cplayer.location(), cplayerMoves, this);
+						waitingForCallback = false;
 				}
 			}
 			currentRoundIndex++;
@@ -174,27 +236,12 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void accept(Move move) {
-		if (!isValidMove(Objects.requireNonNull(move))) {
+		if (!isValidMove(move)) {
 			throw new IllegalArgumentException("Player tried to make an invalid move");
 		}
 		else {
 			waitingForCallback = false;
 		}
-	}
-
-	public Set<Move> getValidMoves() {
-		Colour pcolour = getCurrentPlayer();
-		Set<Move> cplayerMoves = new HashSet<>();
-		PassMove m = new PassMove(pcolour);
-		cplayerMoves.add(m);
-		return cplayerMoves;
-	}
-
-	public boolean isValidMove(Move move) {
-		if (getValidMoves().contains(move)) {
-			return true;
-		}
-		else return false;
 	}
 
 	@Override
