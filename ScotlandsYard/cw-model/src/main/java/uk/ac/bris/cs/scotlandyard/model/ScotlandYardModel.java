@@ -1,5 +1,11 @@
 package uk.ac.bris.cs.scotlandyard.model;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.unmodifiableCollection;
+import static java.util.Collections.unmodifiableList;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 import java.util.Objects;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.*;
@@ -9,6 +15,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -16,11 +23,11 @@ import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import uk.ac.bris.cs.gamekit.graph.Node;
-
+import java.lang.Iterable;
 import java.util.Iterator;
-
+import uk.ac.bris.cs.gamekit.graph.Graph;
 import com.google.common.collect.ImmutableMap;
-
+import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import java.util.Map;
 import com.google.common.collect.ImmutableSet;
 import java.util.NoSuchElementException;
@@ -51,8 +58,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 
 	public ScotlandYardModel(List<Boolean> rounds, Graph<Integer, Transport> graph,
-			PlayerConfiguration mrX, PlayerConfiguration firstDetective,
-			PlayerConfiguration... restOfTheDetectives) {
+							 PlayerConfiguration mrX, PlayerConfiguration firstDetective,
+							 PlayerConfiguration... restOfTheDetectives) {
 
 		currentRoundIndex = 0;
 		//empty/null checksums for model variables
@@ -157,72 +164,100 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if (i>0) return true;
 		else return false;
 	}
-	Integer getDestination(Edge<Integer, Transport> in) {
-		return in.destination().value();
-	}
 
-	Ticket getTicket(Edge<Integer, Transport> in) {
-		return Ticket.fromTransport(in.data());
-	}
-	Collection<Edge<Integer, Transport>> getOptions(Integer in) {
-		Collection<Edge<Integer, Transport>> out = getGraph().getEdgesFrom(getGraph().getNode(in));
-		return Collections.unmodifiableCollection(out);
-	}
-	private Collection<Edge<Integer,Transport>> getOptionsDestination(Integer location){
-		return getGraph().getEdgesFrom(getGraph().getNode(location)) ;
+	public boolean playerHas2TicketsAvailable(Colour colour, Ticket ticket) {
+		int i;
+		try {
+			i = getPlayerTickets(colour, ticket).get();
+		} catch (NoSuchElementException e) {
+			i = 2;
+		}
+		if (i>=2) return true;
+		else return false;
 	}
 	//returns true if the move is in the set of valid moves (made by getValidMoves)
 	public boolean isValidMove(Move move) {
-		ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-		if (getValidMoves(cplayer).contains(move)) {
+		if (getValidMoves().contains(move)) {
 			return true;
 		}
 		else return false;
 	}
+	public int roundRemaining() {
+		return getRounds().size() - getCurrentRound();
+	}
+
+
 	//returns a set of valid moves for a given
-	public Set<Move> getValidMoves(ScotlandYardPlayer cplayer) {
+	public Set<Move> getValidMoves() {
 		Set<Move> cplayerMoves = new HashSet<>();
-		Colour colour = cplayer.colour() ;
-		Integer location = cplayer.location() ;
-		Node<Integer> nodeL = graph.getNode(location) ;
-		Collection<Edge<Integer,Transport>> possibleMoves = getOptionsDestination(location) ;
+		Optional<Integer> plocation = getPlayerLocation(getCurrentPlayer());
+		Colour colour = getCurrentPlayer();
 
+		Integer location = plocation.get();
+		Node<Integer> nodeL = graph.getNode(location);
+		Collection<Edge<Integer, Transport>> e = new HashSet<>();
 
-		for(Edge<Integer,Transport> edge : possibleMoves) {
-			Ticket ticket = getTicket(edge);
-			Integer destination = getDestination(edge);
-
-
-			if ((playerHasTicketsAvailable(colour, ticket)) && !destinationHasPlayer(location)) {
-				cplayerMoves.add(new TicketMove(colour, ticket, destination));
-
-				if ((playerHasTicketsAvailable(colour, SECRET))) {
-					cplayerMoves.add(new TicketMove(colour, SECRET, destination));
+		if (nodeL == null) {
+			e = graph.getEdges();
+		} else {
+			e = graph.getEdgesFrom(Objects.requireNonNull(nodeL));
+		}
+		//iterator that iterates over all the edges
+		Iterator<Edge<Integer, Transport>> iterator = e.iterator();
+		while (Objects.requireNonNull(iterator.hasNext())) {
+			Edge<Integer, Transport> edge = iterator.next();
+			Integer destination = edge.destination().value();
+			Ticket ticket = Ticket.fromTransport(edge.data());
+			//if the reachable nodes dont have a player on them and the player has available tickets,
+			// add this node as a possible TicketMove
+			if (!destinationHasPlayer(destination)) {
+			    if (playerHasTicketsAvailable(colour, ticket)) {
+					cplayerMoves.add(new TicketMove(colour, ticket, destination));
 				}
-				if ((playerHasTicketsAvailable(colour, DOUBLE)) && (24 - currentRoundIndex) >= 2) {
-					Collection<Edge<Integer, Transport>> possibleMoves2 = getOptionsDestination(destination);
-					for (Edge<Integer, Transport> Edge2 : possibleMoves2) {
-						Integer destination2 = getDestination(Edge2);
-						Ticket ticket2 = getTicket(Edge2);
-						if (playerHasTicketsAvailable(colour, ticket2) && !destinationHasPlayer(destination)) {
-							if (ticket == ticket2 && cplayer.hasTickets(ticket, 2)) {
-								cplayerMoves.add(new DoubleMove(colour, ticket, destination, ticket2, destination2));
-							}
-							if (playerHasTicketsAvailable(colour, SECRET)) {
-								cplayerMoves.add(new DoubleMove(colour, SECRET, destination, ticket, destination2));
-								cplayerMoves.add(new DoubleMove(colour, ticket, destination, SECRET, destination2));
-							}
+                if (playerHasTicketsAvailable(colour, SECRET)) {
+                    cplayerMoves.add(new TicketMove(colour, SECRET, destination));
+                }
+				if (playerHasTicketsAvailable(colour, DOUBLE) && roundRemaining() >= 2) {
+
+					Node<Integer> nodeR = graph.getNode(destination) ;
+					Collection<Edge<Integer,Transport>> d = new HashSet<>() ;
+					if (nodeR==null) {
+                        d = graph.getEdges();
+                    }
+					else {
+                        d = graph.getEdgesFrom(Objects.requireNonNull(nodeR));
+                    }
+					    Iterator<Edge<Integer,Transport>> iterator1 = d.iterator();
+					    while(Objects.requireNonNull(iterator1.hasNext())){
+					        Edge<Integer,Transport> edge1 = iterator1.next();
+						Integer destination1 = edge1.destination().value();
+						Ticket ticket1 = Ticket.fromTransport(edge1.data());
+						if (!destinationHasPlayer(destination1)) {
+						    if (!playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket1) && playerHasTicketsAvailable(colour,ticket)){
+						        cplayerMoves.add(new DoubleMove(colour,ticket,destination,ticket1,destination1)) ;
+                            }
+                            else if(playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket)){
+                                cplayerMoves.add(new DoubleMove(colour,ticket,destination,SECRET,destination1)) ;
+                            }
+                            else if (playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket1)){
+                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,ticket1,destination1)) ;
+                            }
+                            else if (playerHas2TicketsAvailable(colour,SECRET)){
+                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,SECRET,destination1))  ;
+                            }
+
 						}
+
+
 					}
 				}
 			}
-			if (cplayerMoves.isEmpty() && colour != BLACK) {
-				cplayerMoves.add(new PassMove(colour));
-			}
+
 
 		}
-
-		return cplayerMoves;
+		if (colour.isDetective() && cplayerMoves.isEmpty()) {
+			cplayerMoves.add(new PassMove(colour)); }
+			return cplayerMoves;
 	}
 
 	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
@@ -233,14 +268,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		waitingForCallback = false;
 		if (!gameOverBool) {
 			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) {
-				if (!waitingForCallback) {
-						waitingForCallback = true;
-						ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-						Set<Move> cplayerMoves = getValidMoves(cplayer);
-						if (getCurrentPlayer() == BLACK) {
-							currentRoundIndex++;
-						}
-						cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
+				if (waitingForCallback==false) {
+					waitingForCallback = true;
+					ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+					Set<Move> cplayerMoves = getValidMoves();
+					if (getCurrentPlayer() == BLACK) {
+						currentRoundIndex++;
+					}
+					cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
 				}
 			}
 		}

@@ -43,17 +43,17 @@ public interface ScotlandYardView {
 	 * @param colour The colour of the player whose location is requested; not
 	 * null
 	 * @return The location of the player whose location is requested. If BLACK,
-	 * then this returns 0 if MrX has never been revealed, otherwise
-	 * returns the location of MrX in his last known location. MrX is
-	 * revealed in round n where calling {@link #getRounds()} with n
-	 * returns true. Only returns empty if the game does not have a player with the specified
-	 * colour
+	 * 	 * then this returns 0 if MrX has never been revealed, otherwise
+	 * 	 * returns the location of MrX in his last known location. MrX is
+	 * 	 * revealed in round n where calling {@link #getRounds()} with n
+	 * 	 * returns true. Only returns empty if the game does not have a player with the specified
+	 * 	 * colour
 	 */
 	Optional<Integer> getPlayerLocation(Colour colour);
 
-	/**
-	 * The number of a particular ticket that a player with the specified colour
-	 * has.
+	/**The number of a particular ticket that a player with the specified colour
+	 * 	 * has.
+	 *
 	 *
 	 * @param colour The colour of the player whose tickets are requested; not
 	 * null
