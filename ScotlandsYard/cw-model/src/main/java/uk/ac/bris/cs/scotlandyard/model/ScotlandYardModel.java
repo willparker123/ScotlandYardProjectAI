@@ -161,20 +161,23 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		} catch (NoSuchElementException e) {
 			i = 0;
 		}
-		if (i>0) return true;
+		if (i>=1) return true;
 		else return false;
 	}
 
-	public boolean playerHas2TicketsAvailable(Colour colour, Ticket ticket) {
+	//POLYMORPHISM
+	//returns true if the player has at least "n" ticket of the given ticket type
+	public boolean playerHasTicketsAvailable(Colour colour, Ticket ticket, int n) {
 		int i;
 		try {
 			i = getPlayerTickets(colour, ticket).get();
 		} catch (NoSuchElementException e) {
-			i = 2;
+			i = 0;
 		}
-		if (i>=2) return true;
+		if (i>=n) return true;
 		else return false;
 	}
+
 	//returns true if the move is in the set of valid moves (made by getValidMoves)
 	public boolean isValidMove(Move move) {
 		if (getValidMoves().contains(move)) {
@@ -182,6 +185,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		else return false;
 	}
+
 	public int roundRemaining() {
 		return getRounds().size() - getCurrentRound();
 	}
@@ -217,47 +221,46 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
                 if (playerHasTicketsAvailable(colour, SECRET)) {
                     cplayerMoves.add(new TicketMove(colour, SECRET, destination));
                 }
-				if (playerHasTicketsAvailable(colour, DOUBLE) && roundRemaining() >= 2) {
-
-					Node<Integer> nodeR = graph.getNode(destination) ;
-					Collection<Edge<Integer,Transport>> d = new HashSet<>() ;
+				if (playerHasTicketsAvailable(colour, DOUBLE) && roundRemaining() >= 2)
+				{
+					Node<Integer> nodeR = graph.getNode(destination);
+					Collection<Edge<Integer,Transport>> d = new HashSet<>();
 					if (nodeR==null) {
                         d = graph.getEdges();
                     }
 					else {
                         d = graph.getEdgesFrom(Objects.requireNonNull(nodeR));
                     }
-					    Iterator<Edge<Integer,Transport>> iterator1 = d.iterator();
-					    while(Objects.requireNonNull(iterator1.hasNext())){
-					        Edge<Integer,Transport> edge1 = iterator1.next();
+
+					Iterator<Edge<Integer,Transport>> iterator1 = d.iterator();
+					while(Objects.requireNonNull(iterator1.hasNext())) {
+
+						Edge<Integer,Transport> edge1 = iterator1.next();
 						Integer destination1 = edge1.destination().value();
 						Ticket ticket1 = Ticket.fromTransport(edge1.data());
+
 						if (!destinationHasPlayer(destination1)) {
-						    if (!playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket1) && playerHasTicketsAvailable(colour,ticket)){
-						        cplayerMoves.add(new DoubleMove(colour,ticket,destination,ticket1,destination1)) ;
+						    if (!playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket1)
+									&& playerHasTicketsAvailable(colour,ticket)) {
+						        cplayerMoves.add(new DoubleMove(colour,ticket,destination,ticket1,destination1));
+                            } else if (playerHasTicketsAvailable(colour,SECRET)
+									&& playerHasTicketsAvailable(colour,ticket)) {
+                            	cplayerMoves.add(new DoubleMove(colour,ticket,destination,SECRET,destination1));
+                            } else if (playerHasTicketsAvailable(colour,SECRET)
+									&& playerHasTicketsAvailable(colour,ticket1)) {
+                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,ticket1,destination1));
+                            } else if (playerHasTicketsAvailable(colour,SECRET,2)) {
+                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,SECRET,destination1));
                             }
-                            else if(playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket)){
-                                cplayerMoves.add(new DoubleMove(colour,ticket,destination,SECRET,destination1)) ;
-                            }
-                            else if (playerHasTicketsAvailable(colour,SECRET) && playerHasTicketsAvailable(colour,ticket1)){
-                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,ticket1,destination1)) ;
-                            }
-                            else if (playerHas2TicketsAvailable(colour,SECRET)){
-                                cplayerMoves.add(new DoubleMove(colour,SECRET,destination,SECRET,destination1))  ;
-                            }
-
 						}
-
-
 					}
 				}
 			}
-
-
+		} if (colour.isDetective() && cplayerMoves.isEmpty()) {
+			cplayerMoves.add(new PassMove(colour));
 		}
-		if (colour.isDetective() && cplayerMoves.isEmpty()) {
-			cplayerMoves.add(new PassMove(colour)); }
-			return cplayerMoves;
+
+		return cplayerMoves;
 	}
 
 	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
