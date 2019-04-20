@@ -56,7 +56,7 @@ public interface Controller extends Initializable {
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		try {
 			InputStream stream = classLoader
-					                     .getResourceAsStream(fxmlPath);
+					.getResourceAsStream(fxmlPath);
 			if (stream == null)
 				throw new IllegalArgumentException("Unable to find " + fxmlPath);
 			loader.load(stream);

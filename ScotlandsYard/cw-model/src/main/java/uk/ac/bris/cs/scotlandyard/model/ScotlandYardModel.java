@@ -51,9 +51,6 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	public boolean gameOverBool = false;
 	public boolean waitingForCallback = false;
 
-	public static void setSpectators(Collection<Spectator> spectators) {
-		ScotlandYardModel.spectators = spectators;
-	}
 
 
 	//initialising variables for duplicate checksum
@@ -81,7 +78,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 			this.rounds = Objects.requireNonNull(rounds);
 			this.playerConfigurations.add(0,requireNonNull(mrX));
 			this.playerConfigurations.add(1,requireNonNull(firstDetective));
-			this.graph = new ImmutableGraph<Integer, Transport>(graph);
+			this.graph = new ImmutableGraph <Integer, Transport>(graph);
 
 			for (PlayerConfiguration detective : restOfTheDetectives) {
 				this.playerConfigurations.add(requireNonNull(detective));
@@ -209,81 +206,76 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	//returns a set of valid moves for a given
 	public Set<Move> getValidMoves(ScotlandYardPlayer player) {
 		Set<Move> cplayerMoves = new HashSet<>();
-		Colour colour = getCurrentPlayer();
+		Colour colour = player.colour() ;
 		Integer location = player.location() ;
 
-			Node<Integer> nodeL = graph.getNode(location);
-			Collection<Edge<Integer, Transport>> e;
+		Node<Integer> nodeL = graph.getNode(location);
+		Collection<Edge<Integer, Transport>> e;
 
-			if (nodeL == null) {
-				e = graph.getEdges();
-			} else {
-				e = graph.getEdgesFrom(Objects.requireNonNull(nodeL));
+		if (nodeL == null) {
+			e = graph.getEdges();
+		} else {
+			e = graph.getEdgesFrom(Objects.requireNonNull(nodeL));
+		}
+
+
+		for (Edge<Integer, Transport> edge : e) {
+
+			Integer destination = edge.destination().value();
+			Ticket ticket = Ticket.fromTransport(edge.data());
+			//if the reachable nodes don't have a player on them and the player has available tickets,
+			// add this node as a possible TicketMove
+			if (!destinationHasPlayer(destination)) {
+				if (playerHasTicketsAvailable(colour, ticket)) {
+					cplayerMoves.add(new TicketMove(colour, ticket, destination));
+				}
+				if (playerHasTicketsAvailable(colour, SECRET)) {
+					cplayerMoves.add(new TicketMove(colour, SECRET, destination));
+				}
+				if (playerHasTicketsAvailable(colour, DOUBLE) && roundRemaining() >= 2) {
+					Node<Integer> nodeR = graph.getNode(destination);
+					Collection<Edge<Integer, Transport>> d;
+					if (nodeR == null) {
+						d = graph.getEdges();
+					} else {
+						d = graph.getEdgesFrom(Objects.requireNonNull(nodeR));
+					}
+
+					for (Edge<Integer, Transport> edge1 : d) {
+
+						Integer destination1 = edge1.destination().value();
+						Ticket ticket1 = Ticket.fromTransport(edge1.data());
+						boolean Tickets = (ticket==ticket1 && playerHasTicketsAvailable(colour,ticket,2)) || (ticket != ticket1 && playerHasTicketsAvailable(colour,ticket1)) ;
+						TicketMove firstMove = new TicketMove(colour, ticket, destination);
+						TicketMove secondMove = new TicketMove(colour, ticket1, destination1);
+
+						if ((destination1 == location || !destinationHasPlayer(destination1)) && Tickets) {
+							cplayerMoves.add(new DoubleMove(colour, firstMove, secondMove));
+						}
+						if ((destination1 == location || !destinationHasPlayer(destination1)) && playerHasTicketsAvailable(colour,SECRET)){
+							TicketMove secretFirstMove = new TicketMove(colour,SECRET,destination) ;
+							TicketMove secretSecondMove = new TicketMove(colour,SECRET,destination1) ;
+							if (playerHasTicketsAvailable(colour,SECRET,2)){
+								cplayerMoves.add(new DoubleMove(colour,secretFirstMove,secretSecondMove)) ;
+							}
+							if (playerHasTicketsAvailable(colour,ticket)){
+								cplayerMoves.add(new DoubleMove(colour,firstMove,secretSecondMove)) ;
+							}
+							if (playerHasTicketsAvailable(colour,ticket1)){
+								cplayerMoves.add(new DoubleMove(colour,secretFirstMove,secondMove)) ;
+							}
+						}
+
+					}
+				}
 			}
 
-
-			for (Edge<Integer, Transport> edge : e) {
-
-				Integer destination = edge.destination().value();
-				Ticket ticket = Ticket.fromTransport(edge.data());
-				//if the reachable nodes don't have a player on them and the player has available tickets,
-				// add this node as a possible TicketMove
-				if (!destinationHasPlayer(destination)) {
-					if (playerHasTicketsAvailable(colour, ticket)) {
-						cplayerMoves.add(new TicketMove(colour, ticket, destination));
-					}
-					if (playerHasTicketsAvailable(colour, SECRET)) {
-						cplayerMoves.add(new TicketMove(colour, SECRET, destination));
-					}
-					if (playerHasTicketsAvailable(colour, DOUBLE) && roundRemaining() >= 2) {
-						Node<Integer> nodeR = graph.getNode(destination);
-						Collection<Edge<Integer, Transport>> d;
-						if (nodeR == null) {
-							d = graph.getEdges();
-						} else {
-							d = graph.getEdgesFrom(Objects.requireNonNull(nodeR));
-						}
-
-
-						for (Edge<Integer, Transport> edge1 : d) {
-
-							Integer destination1 = edge1.destination().value();
-							Ticket ticket1 = Ticket.fromTransport(edge1.data());
-							boolean ticketCombinations = (ticket != ticket1 && playerHasTicketsAvailable(colour, ticket1))
-									|| (ticket == ticket1 && playerHasTicketsAvailable(colour, ticket, 2) || playerHasTicketsAvailable(colour, SECRET, 2));
-							if (!destinationHasPlayer(destination1) && ticketCombinations) {
-								TicketMove firstMove = new TicketMove(colour, ticket, destination);
-								TicketMove secondMove = new TicketMove(colour, ticket1, destination1);
-								cplayerMoves.add(new DoubleMove(colour, firstMove, secondMove));
-
-								if (playerHasTicketsAvailable(colour, SECRET)) {
-									TicketMove secretFirstMove = new TicketMove(colour, SECRET, destination);
-									TicketMove secretSecondMove = new TicketMove(colour, SECRET, destination1);
-									if (playerHasTicketsAvailable(colour, SECRET, 2)) {
-										cplayerMoves.add(new DoubleMove(colour, secretFirstMove, secretSecondMove));
-										currentRoundIndex++ ;
-									}
-									if (playerHasTicketsAvailable(colour, ticket)) {
-										cplayerMoves.add(new DoubleMove(colour, firstMove, secretSecondMove));
-										currentRoundIndex++ ;
-									}
-									if (playerHasTicketsAvailable(colour, ticket1)) {
-										cplayerMoves.add(new DoubleMove(colour, secretFirstMove, secondMove));
-										currentRoundIndex++ ;
-									}
-								}
-							}
-
-						}
-					}
-				}
-
-				}
+		}
 		if (colour.isDetective() && cplayerMoves.isEmpty()) {
 			cplayerMoves.add(new PassMove(colour));
-			}
-		return cplayerMoves;
 		}
+		return cplayerMoves;
+	}
 	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
 	//make a move from the given list of valid moves
 	@Override
@@ -306,18 +298,47 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 	}
 
+
+	private void callbackforMrX(Move move , ScotlandYardPlayer mrX){
+		if(move.getClass() == TicketMove.class){
+			int location = mrX.location() ;
+			currentRoundIndex++ ;
+			TicketMove MrXmove = (TicketMove) move ;
+			mrX.removeTicket(MrXmove.ticket());
+			location = MrXmove.destination() ;
+		}
+		else {
+			mrX.removeTicket(SECRET) ;
+			DoubleMove MrXmove = (DoubleMove) move ;
+			callbackforMrX(MrXmove.firstMove(), mrX);
+			callbackforMrX(MrXmove.secondMove(),mrX);
+		}
+	}
+
+	private void callbackforDetectives(Move move , ScotlandYardPlayer player){
+		int location = player.location() ;
+		TicketMove decMove = (TicketMove) move ;
+		location = decMove.destination() ;
+		player.removeTicket(decMove.ticket());
+	}
+
 	//Consumer: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
 	//			also, finishes the waitingForCallback request
 	@Override
 	public void accept(Move move) {
 		if (move==null) {
 			throw new NullPointerException("Player tried to make a null move");
-		} else if (!isValidMove(move)) {
-			throw new IllegalArgumentException("Player tried to make an invalid move");
-		} else {
-			waitingForCallback = false;
 		}
+		else if  (!isValidMove(move))
+		{
+			throw new IllegalArgumentException("Player tried to make an invalid move");
+		}
+		else waitingForCallback = false ;
+
+
 	}
+
+
 
 	@Override
 	public Collection<Spectator> getSpectators() {
@@ -408,5 +429,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 	@Override
 	public ImmutableGraph<Integer, Transport> getGraph() {
 		return requireNonNull(graph);
+	}
+	public Colour nextPlayer(){
+		currentPlayerIndex++ ;
+		return getCurrentPlayer() ;
 	}
 }
