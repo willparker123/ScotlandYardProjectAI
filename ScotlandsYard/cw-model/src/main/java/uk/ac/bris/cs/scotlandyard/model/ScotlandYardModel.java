@@ -35,7 +35,7 @@ import java.util.NoSuchElementException;
 
 
 // TODO implement all methods and pass all tests
-public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
+public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, MoveVisitor {
 
 	//initialising variables for model
 	public List<Boolean> rounds;
@@ -136,24 +136,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 
 	@Override
 	public void registerSpectator(Spectator spectator) {
-		requireNonNull(spectator) ;
-		if(!spectators.contains(spectator)){
-			spectators.add(spectator);
-		}
-		else {
-			throw new IllegalArgumentException("There is already a spectator") ;
-		}
+			throw new NullPointerException("Z") ;
 	}
 
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
-		requireNonNull(spectator) ;
-		if(spectators.contains(spectator)){
-			spectators.remove(spectator) ;
-		}
-		else{
-			throw new IllegalArgumentException("Illegal spectator found") ;
-		}
 		throw new NullPointerException("Implement me");
 	}
 
@@ -276,11 +263,24 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		}
 		return cplayerMoves;
 	}
+
+	@Override
+	public void visit(PassMove move) {
+
+	}
+	@Override
+	public void visit(DoubleMove move) {
+
+	}
+	@Override
+	public void visit(TicketMove move) {
+
+	}
+
 	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
 	//make a move from the given list of valid moves
 	@Override
 	public void startRotate() {
-		currentPlayerIndex = 0;
 		waitingForCallback = false;
 		if (!gameOverBool) {
 			for (currentPlayerIndex=0; currentPlayerIndex < players.size();currentPlayerIndex++) {
@@ -288,38 +288,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 					waitingForCallback = true;
 					ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
 					Set<Move> cplayerMoves = getValidMoves(cplayer);
-					if (getCurrentPlayer() == BLACK) {
-						currentRoundIndex++;
-					}
 					cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
-
 				}
 			}
 		}
-	}
-
-
-	private void callbackforMrX(Move move , ScotlandYardPlayer mrX){
-		if(move.getClass() == TicketMove.class){
-			int location = mrX.location() ;
-			currentRoundIndex++ ;
-			TicketMove MrXmove = (TicketMove) move ;
-			mrX.removeTicket(MrXmove.ticket());
-			location = MrXmove.destination() ;
-		}
-		else {
-			mrX.removeTicket(SECRET) ;
-			DoubleMove MrXmove = (DoubleMove) move ;
-			callbackforMrX(MrXmove.firstMove(), mrX);
-			callbackforMrX(MrXmove.secondMove(),mrX);
-		}
-	}
-
-	private void callbackforDetectives(Move move , ScotlandYardPlayer player){
-		int location = player.location() ;
-		TicketMove decMove = (TicketMove) move ;
-		location = decMove.destination() ;
-		player.removeTicket(decMove.ticket());
 	}
 
 	//Consumer: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
@@ -329,16 +301,28 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move> {
 		if (move==null) {
 			throw new NullPointerException("Player tried to make a null move");
 		}
-		else if  (!isValidMove(move))
+		else if (!isValidMove(move))
 		{
 			throw new IllegalArgumentException("Player tried to make an invalid move");
 		}
-		else waitingForCallback = false ;
-
-
+		else {
+			waitingForCallback = false;
+		}
 	}
 
-
+	public void accept(DoubleMove move) {
+		if (move==null) {
+			throw new NullPointerException("Player tried to make a null move");
+		}
+		else if (!isValidMove(move))
+		{
+			throw new IllegalArgumentException("Player tried to make an invalid move");
+		}
+		else {
+			currentRoundIndex++;
+			waitingForCallback = false;
+		}
+	}
 
 	@Override
 	public Collection<Spectator> getSpectators() {
