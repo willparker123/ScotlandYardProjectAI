@@ -51,7 +51,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
     //true if move is in the process of being made
 	public boolean waitingForCallback = false;
 	//true if doublemove is being played
-	public boolean dbMove = false;
+	private boolean dbMove = false;
+    private boolean dbMoveRound = false;
 	//mrX's last revealed location
 	public int mrXLastLocation = 0;
 
@@ -304,36 +305,71 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void visit(DoubleMove move) {
 		ScotlandYardPlayer cplayer = getPlayerFromColour(move.colour()).get();
+        if (rounds.get(getCurrentRound())) {
+            if (rounds.get(getCurrentRound()+1)) {
+                //true, true
+                update(this, move);
+            } else {
+                //true, false
+                DoubleMove tm = new DoubleMove(move.colour(), move.firstMove().ticket(),
+                        move.firstMove().destination(), move.secondMove().ticket(), move.firstMove().destination());
+                update(this, tm);
+            }
+        } else {
+            if (rounds.get(getCurrentRound()+1)) {
+                //false, true
+                DoubleMove tm = new DoubleMove(move.colour(), move.firstMove().ticket(),
+                        mrXLastLocation, move.secondMove().ticket(), move.secondMove().destination());
+                update(this, tm);
+            } else {
+                //false, false
+                DoubleMove tm = new DoubleMove(move.colour(), move.firstMove().ticket(),
+                        mrXLastLocation, move.secondMove().ticket(), mrXLastLocation);
+                update(this, tm);
+            }
+        }
+        update(this, getCurrentRound());
+        currentRoundIndex++;
 		cplayer.removeTicket(DOUBLE);
         dbMove = false;
-		this.visit(move.firstMove());
+        dbMoveRound = true;
+        this.visit(move.firstMove());
         dbMove = true;
-		this.visit(move.secondMove());
+        this.visit(move.secondMove());
         dbMove = false;
-        update(this, move);
+        dbMoveRound = false;
 	}
 	@Override
 	public void visit(TicketMove move) {
         ScotlandYardPlayer cplayer = getPlayerFromColour(move.colour()).get();
 		cplayer.removeTicket(move.ticket());
         cplayer.location(move.destination());
-		if (!cplayer.colour().isMrX()) {
+		if (cplayer.colour().isDetective()) {
 			players.get(0).addTicket(move.ticket());
             if (currentPlayerIndex+1<players.size()) {
                 if (!dbMove) currentPlayerIndex++;
             } else currentPlayerIndex = 0;
             update(this, move);
 		} else if (cplayer.colour().isMrX()) {
-		    if (rounds.get(getCurrentRound())) {
-                mrXLastLocation = cplayer.location();
+		    if (dbMoveRound) {
+		        if (rounds.get(getCurrentRound()-1)) {
+                    mrXLastLocation = cplayer.location();
+                }
+            } else {
+                if (rounds.get(getCurrentRound())) {
+                    mrXLastLocation = cplayer.location();
+                }
             } if (currentPlayerIndex+1<players.size()) {
                 if (!dbMove) currentPlayerIndex++;
             } else {
                 if (!dbMove) currentPlayerIndex = 0;
             }
-            update(this, move);
-            currentRoundIndex++;
-            update(this, getCurrentRound());
+		    TicketMove tm = new TicketMove(move.colour(), move.ticket(), mrXLastLocation);
+            update(this, tm);
+            if (!dbMove) {
+                update(this, getCurrentRound());
+                currentRoundIndex++;
+            }
         }
 	}
 
@@ -351,8 +387,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
                     cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
 				}
 			}
-			update(this);
-		}
+        if (!waitingForCallback) update(this);
+	}
 
 	//CONSUMER: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
 	//			also, finishes the waitingForCallback request
