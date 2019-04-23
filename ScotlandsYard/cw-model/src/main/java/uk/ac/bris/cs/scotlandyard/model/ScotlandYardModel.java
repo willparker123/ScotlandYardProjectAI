@@ -148,7 +148,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	@Override
 	public void unregisterSpectator(Spectator spectator) {
 		Objects.requireNonNull(spectator);
-		if (!spectators.contains(spectator)) {
+		if (spectators.contains(spectator)) {
 			spectators.remove(requireNonNull(spectator));
 		}
 		else throw new IllegalArgumentException("Invalid Spectator");
@@ -301,22 +301,51 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 
 	@Override
 	public void visit(PassMove move) {
+        if (getCurrentPlayer()==BLACK) {
+            currentRoundIndex++;
+            update(this, currentRoundIndex);
+        }
+        if (currentPlayerIndex+1<players.size()) {
+            currentPlayerIndex++;
+        } else currentPlayerIndex = 0;
+        update(this, move);
 	}
+
 	@Override
 	public void visit(DoubleMove move) {
-		ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+		ScotlandYardPlayer cplayer = getPlayerFromColour(move.colour());
 		cplayer.removeTicket(DOUBLE);
+        dbMove = false;
 		this.visit(move.firstMove());
+        dbMove = true;
 		this.visit(move.secondMove());
+        dbMove = false;
+        update(this, move);
 	}
+
 	@Override
 	public void visit(TicketMove move) {
-		ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+        ScotlandYardPlayer cplayer = getPlayerFromColour(move.colour());
 		cplayer.removeTicket(move.ticket());
-		cplayer.location(move.destination());
-		if (getCurrentPlayer()!=BLACK) {
+        cplayer.location(move.destination());
+		if (!cplayer.colour().isMrX()) {
 			players.get(0).addTicket(move.ticket());
-		}
+            if (currentPlayerIndex+1<players.size()) {
+                if (!dbMove) currentPlayerIndex++;
+            } else currentPlayerIndex = 0;
+            update(this, move);
+		} else if (cplayer.colour().isMrX()) {
+		    if (rounds.get(getCurrentRound())) {
+                mrXLastLocation = cplayer.location();
+            } if (currentPlayerIndex+1<players.size()) {
+                if (!dbMove) currentPlayerIndex++;
+            } else {
+                if (!dbMove) currentPlayerIndex = 0;
+            }
+            update(this, move);
+            currentRoundIndex++;
+            update(this, currentRoundIndex);
+        }
 	}
 
 	//starts the rotation through the players; resets the currentPlayerIndex, provides event handling and tries to
@@ -328,10 +357,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			for (ScotlandYardPlayer p : players) {
 				if (!waitingForCallback) {
 					waitingForCallback = true;
-					Set<Move> cplayerMoves = getValidMoves(p);
-					p.player().makeMove(this, p.location(), Objects.requireNonNull(cplayerMoves), this);
-					update(this);
-				} currentPlayerIndex++;
+					ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+					Set<Move> cplayerMoves = getValidMoves(cplayer);
+                    cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
+				}
 			}
 			update(this);
 		}
@@ -347,20 +376,10 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 			throw new IllegalArgumentException("Player tried to make an invalid move");
 		}
 		else {
-			move.visit(this);
+            move.visit(this);
 			waitingForCallback = false;
-			update(this, currentRoundIndex);
-
-			/*
-			if (rounds.get(currentRoundIndex)) {
-				mrXLastLocation = players.get(0).location();
-			}
-			if (getCurrentPlayer()==BLACK) {
-				update(this, mrXLastLocation);
-				currentRoundIndex++;
-			}
-			 */
-		}
+            dbMove = false;
+        }
 	}
 
 @Override
@@ -374,12 +393,12 @@ public List<Colour> getPlayers() {
 		ArrayList<Colour> playerColours = new ArrayList<>();
 		Iterator<ScotlandYardPlayer> iterator = players.iterator();
 		while (iterator.hasNext()) {
-		ScotlandYardPlayer x = iterator.next();
-		Colour playerColour = x.colour();
-		playerColours.add(requireNonNull(playerColour));
+		    ScotlandYardPlayer x = iterator.next();
+		    Colour playerColour = x.colour();
+		    playerColours.add(requireNonNull(playerColour));
 		}
 		return Collections.unmodifiableList(playerColours);
-		}
+	}
 
 //TO FINISH
 @Override
@@ -394,46 +413,43 @@ public Set<Colour> getWinningPlayers() {
 public Optional<Integer> getPlayerLocation(Colour colour) {
 		Iterator<ScotlandYardPlayer> iterator = players.iterator();
 		while (iterator.hasNext()) {
-		ScotlandYardPlayer x = iterator.next();
-		Colour playerColour = x.colour();
-		if (playerColour == colour) {
-		if (playerColour == BLACK) {
-		return Optional.of(0);
-		}
-		else {
-		Optional<Integer> optionalInt = Optional.of(x.location());
-		return optionalInt;
-		}
-
-		}
+		    ScotlandYardPlayer x = iterator.next();
+		    Colour playerColour = x.colour();
+		    if (playerColour == colour) {
+		        if (playerColour == BLACK) {
+		            return Optional.of(mrXLastLocation);
+		        } else {
+		            Optional<Integer> optionalInt = Optional.of(x.location());
+		            return optionalInt;
+		        }
+		    }
 		}
 		return Optional.empty();
-		}
+	}
 
 @Override
 public Optional<Integer> getPlayerTickets(Colour colour, Ticket ticket) {
 		Iterator<ScotlandYardPlayer> iterator = players.iterator();
 		while (iterator.hasNext()) {
-		ScotlandYardPlayer x = iterator.next();
-		Colour playerColour = x.colour();
-		if (playerColour == colour) {
-		try {
-		Optional<Integer> optionalInt = Objects.requireNonNull(Optional.of(x.tickets().get(ticket)));
-		return optionalInt;
-		} catch (Exception e) {
+		    ScotlandYardPlayer x = iterator.next();
+		    Colour playerColour = x.colour();
+		    if (playerColour == colour) {
+		        try {
+		            Optional<Integer> optionalInt = Objects.requireNonNull(Optional.of(x.tickets().get(ticket)));
+		            return optionalInt;
+		        } catch (Exception e) {
+		            return Optional.empty();
+		        }
+		    }
+		}
 		return Optional.empty();
-		}
-		}
-		}
-		return Optional.empty();
-		}
+	}
 
 @Override
 public boolean isGameOver() {
 		if (gameOverBool) {
 			update(this, getWinningPlayers());
 		}
-
 		return gameOverBool;
 	}
 
@@ -441,6 +457,15 @@ public boolean isGameOver() {
 	public Colour getCurrentPlayer() {
 		return players.get(currentPlayerIndex).colour();
 	}
+
+    public ScotlandYardPlayer getPlayerFromColour(Colour c) {
+        for (ScotlandYardPlayer p : players) {
+            if (c==p.colour()) {
+                return p;
+            }
+        }
+	    return null;
+    }
 
 	@Override
 	public int getCurrentRound() {

@@ -22,6 +22,7 @@ import static uk.ac.bris.cs.scotlandyard.model.Colour.BLACK;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.BLUE;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.RED;
 
+
 /**
  * Tests actual game logic between players for the model
  */
