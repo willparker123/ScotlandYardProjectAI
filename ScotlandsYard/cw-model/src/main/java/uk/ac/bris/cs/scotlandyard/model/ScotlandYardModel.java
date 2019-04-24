@@ -42,6 +42,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	private List<Spectator> spectators = new ArrayList<>();
 	public ArrayList<PlayerConfiguration> playerConfigurations = new ArrayList<>();
 	public ArrayList<ScotlandYardPlayer> players;
+    private Set<Colour> setWinners = new HashSet<Colour>();
 	//index of the playerConfigurations/players array which is the current player
 	public int currentPlayerIndex = 0;
 	//index of the current round number
@@ -53,6 +54,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	//true if doublemove is being played
 	private boolean dbMove = false;
     private boolean dbMoveRound = false;
+    private boolean allDetectivesNoMoves = false;
 	//mrX's last revealed location
 	public int mrXLastLocation = 0;
 
@@ -379,15 +381,19 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	public void startRotate() {
 		waitingForCallback = false;
 		currentPlayerIndex = 0;
-			for (ScotlandYardPlayer p : players) {
-				if (!waitingForCallback) {
-					waitingForCallback = true;
-					ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-					Set<Move> cplayerMoves = getValidMoves(cplayer);
-                    cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
-				}
-			}
-        if (!waitingForCallback) update(this);
+        allDetectivesNoMoves = false;
+        for (ScotlandYardPlayer p : players) {
+            if (!waitingForCallback) {
+                waitingForCallback = true;
+                ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+                Set<Move> cplayerMoves = getValidMoves(cplayer);
+                cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
+                if (cplayerMoves.isEmpty() && p.isDetective()) {
+                    allDetectivesNoMoves = true;
+                } else allDetectivesNoMoves = false;
+            }
+        } if (isGameOver() && !waitingForCallback) update(this, getWinningPlayers());
+        else if (!waitingForCallback) update(this);
 	}
 
 	//CONSUMER: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
@@ -428,9 +434,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
     //TO FINISH
     @Override
     public Set<Colour> getWinningPlayers() {
-		Set<Colour> setWinners = new HashSet<Colour>();
-		setWinners = ImmutableSet.copyOf(setWinners);
-		return setWinners;
+		return ImmutableSet.copyOf(setWinners);
 	}
 
     //ITERATOR: iterates through 'players' to find a match to the argument Colour
@@ -474,13 +478,34 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
 	//returns true if the game is over
     @Override
     public boolean isGameOver() {
-		if (gameOverBool) {
-			update(this, getWinningPlayers());
-		}
-		return gameOverBool;
+	    //if mrX is cornered
+        boolean allDestinationsHavePlayers = false;
+        for (Move m : getValidMoves(players.get(0))) {
+            if ((m instanceof TicketMove) && destinationHasPlayer(((TicketMove) m).destination())) {
+                allDestinationsHavePlayers = true;
+            } else allDestinationsHavePlayers = false;
+        }
+
+	    if (currentRoundIndex>=rounds.size()) { //rounds exceeded
+            gameOverBool = true;
+            return true;
+        } else if (allDetectivesNoMoves) {
+            gameOverBool = true;
+            return true;
+        } else if (destinationHasPlayer(players.get(0).location())) { //if mrX is caught
+            gameOverBool = true;
+            return true;
+        } else if (getValidMoves(players.get(0)).isEmpty() || players.get(0).tickets().isEmpty()) { //if mrX can't move
+            gameOverBool = true;
+            return true;
+        } else if (allDestinationsHavePlayers) {
+            gameOverBool = true;
+            return true;
+        }
+        return gameOverBool;
 	}
 
-	//returns the colour of the current player
+    //returns the colour of the current player
     @Override
 	public Colour getCurrentPlayer() {
 		return players.get(currentPlayerIndex).colour();
