@@ -96,6 +96,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
         checkDuplicates();
         checkTickets();
         this.players = makeListPlayers(playerConfigurations);
+        if (isGameOver()) update(this, getWinningPlayers());
     }
 
     //checks for duplicate locations and colours in the "playerConfigurations" set
@@ -493,6 +494,9 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
         } else if (allDetectivesNoMoves) {
             gameOverBool = true;
             return true;
+        } else if (!initialConditionsValid()) {
+            gameOverBool = true;
+            return true;
         } else if (destinationHasPlayer(players.get(0).location())) { //if mrX is caught
             gameOverBool = true;
             return true;
@@ -504,6 +508,16 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
             return true;
         }
         return gameOverBool;
+    }
+
+    public boolean initialConditionsValid() {
+        int i = 0;
+        for (ScotlandYardPlayer p : players) {
+            if (p.isDetective() && !p.hasTickets(BUS) && !p.hasTickets(TAXI) && !p.hasTickets(UNDERGROUND)) {
+                i++;
+            }
+        } if (i!=0) return false;
+        else return true;
     }
 
     //returns the colour of the current player
