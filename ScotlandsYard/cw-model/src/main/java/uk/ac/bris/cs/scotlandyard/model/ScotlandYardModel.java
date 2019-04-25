@@ -47,14 +47,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
     public int currentPlayerIndex = 0;
     //index of the current round number
     public int currentRoundIndex = 0;
-    //true if gameOver
-    public boolean gameOverBool = false;
     //true if move is in the process of being made
     public boolean waitingForCallback = false;
     //true if doublemove is being played
     private boolean dbMove = false;
     private boolean dbMoveRound = false;
-    private boolean allDetectivesNoMoves = false;
     //mrX's last revealed location
     public int mrXLastLocation = 0;
 
@@ -96,7 +93,8 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
         checkDuplicates();
         checkTickets();
         this.players = makeListPlayers(playerConfigurations);
-        if (isGameOver()) update(this, getWinningPlayers());
+        isGameOver(true);
+        if (isGameOver(true)) update(this, getWinningPlayers());
     }
 
     //checks for duplicate locations and colours in the "playerConfigurations" set
@@ -384,19 +382,21 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
     //make a move from the given list of valid moves
     @Override
     public void startRotate() {
-        waitingForCallback = false;
-        currentPlayerIndex = 0;
-        allDetectivesNoMoves = false;
-        for (ScotlandYardPlayer p : players) {
-            if (!waitingForCallback) {
-                waitingForCallback = true;
-                ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
-                Set<Move> cplayerMoves = getValidMoves(cplayer);
-                cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
-            }
-        } if (isGameOver() && !waitingForCallback) update(this, getWinningPlayers());
-        else if (!waitingForCallback) update(this);
-    }
+            if (!isGameOver()) {
+                waitingForCallback = false;
+                currentPlayerIndex = 0;
+                for (ScotlandYardPlayer p : players) {
+                    if (!waitingForCallback) {
+                        waitingForCallback = true;
+                        ScotlandYardPlayer cplayer = players.get(currentPlayerIndex);
+                        Set<Move> cplayerMoves = getValidMoves(cplayer);
+                        cplayer.player().makeMove(this, cplayer.location(), Objects.requireNonNull(cplayerMoves), this);
+                    }
+                }
+                if (isGameOver() && !waitingForCallback) update(this, getWinningPlayers());
+                else if (!waitingForCallback) update(this);
+            } else throw new IllegalStateException("Cannot start rotation if game is already over.");
+        }
 
     //CONSUMER: ScotlandYardModel is the consumer and this accept() method checks for null and illegal args
     //			also, finishes the waitingForCallback request
@@ -487,33 +487,52 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
                 allDestinationsHavePlayers = true;
             } else allDestinationsHavePlayers = false;
         }
-
-        if (currentRoundIndex>=rounds.size()) { //rounds exceeded
-            gameOverBool = true;
-            return true;
-        } else if (allDetectivesNoMoves) {
-            gameOverBool = true;
-            return true;
-        } else if (!initialConditionsValid()) {
-            gameOverBool = true;
-            return true;
-        } else if (destinationHasPlayer(players.get(0).location())) { //if mrX is caught
-            gameOverBool = true;
-            return true;
-        } else if (getValidMoves(players.get(0)).isEmpty() || players.get(0).tickets().isEmpty()) { //if mrX can't move
-            gameOverBool = true;
-            return true;
-        } else if (allDestinationsHavePlayers) {
-            gameOverBool = true;
+        //if all detectives have no moves
+        int i = 0;
+        for (Colour c : getPlayers()) {
+            ScotlandYardPlayer p = getPlayerFromColour(c).get();
+            if (p.colour().isDetective() && (p.hasTickets(BUS) || p.hasTickets(TAXI) || p.hasTickets(UNDERGROUND))) {
+                i++;
+            }
+        } if (i==0) {
+            setWinners.add(BLACK);
+            getWinningPlayers();
             return true;
         }
-        return gameOverBool;
+        if (getValidMoves(players.get(0)).isEmpty() && getCurrentPlayer().isMrX()) { //if mrX can't move
+            setWinners.addAll(getPlayers());
+            setWinners.remove(BLACK);
+            getWinningPlayers();
+            return true;
+        } else if (allDestinationsHavePlayers) {
+            setWinners.add(BLACK);
+            getWinningPlayers();
+            return true;
+        } else if (destinationHasPlayer(players.get(0).location())) { //if mrX is caught
+            setWinners.addAll(getPlayers());
+            setWinners.remove(BLACK);
+            getWinningPlayers();
+            return true;
+        } else if (currentRoundIndex>=rounds.size()) {
+            getWinningPlayers();
+            return true;
+        } else return false;
+    }
+    public boolean isGameOver(boolean initialising) {
+        if (initialising = true) {
+            if (!initialConditionsValid()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean initialConditionsValid() {
         int i = 0;
-        for (ScotlandYardPlayer p : players) {
-            if (p.isDetective() && !p.hasTickets(BUS) && !p.hasTickets(TAXI) && !p.hasTickets(UNDERGROUND)) {
+        for (Colour c : getPlayers()) {
+            ScotlandYardPlayer p = getPlayerFromColour(c).get();
+            if (!p.hasTickets(BUS) && !p.hasTickets(TAXI) && !p.hasTickets(UNDERGROUND)
+                    && !p.hasTickets(SECRET) && !p.hasTickets(DOUBLE) && getPlayers().size()<3) { //p.isDetective() &&
                 i++;
             }
         } if (i!=0) return false;
