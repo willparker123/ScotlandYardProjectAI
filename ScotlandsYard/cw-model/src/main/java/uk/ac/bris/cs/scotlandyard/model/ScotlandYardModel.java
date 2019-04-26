@@ -496,17 +496,14 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
             }
         } if (i==0) {
             setWinners.add(BLACK);
-            getWinningPlayers();
             return true;
         }
         if (getValidMoves(players.get(0)).isEmpty() && getCurrentPlayer().isMrX()) { //if mrX can't move
             setWinners.addAll(getPlayers());
             setWinners.remove(BLACK);
-            getWinningPlayers();
             return true;
         } else if (allDestinationsHavePlayers) {
             setWinners.add(BLACK);
-            getWinningPlayers();
             return true;
         } else if (destinationHasPlayer(players.get(0).location())) { //if mrX is caught
             setWinners.addAll(getPlayers());
@@ -514,8 +511,7 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
             getWinningPlayers();
             return true;
         } else if (currentRoundIndex>=rounds.size()) {
-            getWinningPlayers();
-            return true;
+                return true;
         } else return false;
     }
     public boolean isGameOver(boolean initialising) {
