@@ -7,6 +7,8 @@ import java.util.function.Consumer;
 
 import uk.ac.bris.cs.scotlandyard.ai.ManagedAI;
 import uk.ac.bris.cs.scotlandyard.ai.PlayerFactory;
+import uk.ac.bris.cs.scotlandyard.ai.ResourceProvider;
+import uk.ac.bris.cs.scotlandyard.ai.Visualiser;
 import uk.ac.bris.cs.scotlandyard.model.*;
 import java.util.*;
 import static uk.ac.bris.cs.scotlandyard.model.Colour.*;
@@ -15,6 +17,7 @@ import uk.ac.bris.cs.gamekit.graph.Edge;
 import uk.ac.bris.cs.gamekit.graph.Graph;
 import uk.ac.bris.cs.gamekit.graph.ImmutableGraph;
 import uk.ac.bris.cs.gamekit.graph.Node;
+import java.lang.Integer;
 
 @ManagedAI("SAMI")
 public class SamiAI implements PlayerFactory {
@@ -84,21 +87,19 @@ public class SamiAI implements PlayerFactory {
 			//for all players, find the distance to mrX from the player
 			if (mrXAI) {
 				List<Colour> cs = view.getPlayers();
-				ListIterator<Colour> iterator = cs.listIterator();
-				while (iterator.hasNext()) {
+				for (Colour c : cs) {
 					//skip players with no location
-					if (!view.getPlayerLocation(iterator.next()).isPresent()) continue;
+					if (!view.getPlayerLocation(c).isPresent()) continue;
 					else {
 						//finds critical path to mrX from the player
-						totalDistance+=criticalPath(m.destination(), view.getPlayerLocation(iterator.next()).get());
+						totalDistance+=criticalPath(m.destination(), view.getPlayerLocation(c).get());
 					}
 				}
 			} else {
 				List<Colour> cs = view.getPlayers();
-				ListIterator<Colour> iterator = cs.listIterator();
-				while (iterator.hasNext()) {
+				for (Colour c : cs) {
 					//skip players with no location
-					if (!view.getPlayerLocation(iterator.next()).isPresent()) continue;
+					if (!view.getPlayerLocation(c).isPresent()) continue;
 					else {
 						//finds critical path to mrX from the move's destination
 						totalDistance+=criticalPath(m.destination(), view.getPlayerLocation(cs.get(0)).get());
@@ -109,22 +110,25 @@ public class SamiAI implements PlayerFactory {
 			try {
 				if (mrXAI) {
 					totalValidMoves = getValidMoves(BLACK, m.destination(), view).size();
-				} else totalValidMoves = getValidMoves(m.ticket(), m.destination(), view).size();
+				} else totalValidMoves = getValidMoves(m.colour(), m.destination(), view).size();
 			} catch (Exception e) {
 				totalValidMoves = 1;
 			}
 
-			if (mrXAI) return Integer.valueOf(totalDistance*totalValidMoves);
-			else return Integer.valueOf(totalDistance/totalValidMoves);
+			if (mrXAI) return totalDistance*totalValidMoves;
+			else {
+				if (totalValidMoves!=0) return totalDistance/totalValidMoves;
+				else return totalDistance;
+			}
 		}
 		//TODO
 		private int score(DoubleMove m, ScotlandYardView view) {
-			return random.nextInt(10000);
+			return score(m.secondMove(), view);
 			//good score: far from detectives, many validMoves with target node
 		}
 		//TODO
 		private int score(PassMove m, ScotlandYardView view) {
-			return random.nextInt(10000);
+			return 0;
 			//good score: far from detectives, many validMoves with target node
 		}
 
