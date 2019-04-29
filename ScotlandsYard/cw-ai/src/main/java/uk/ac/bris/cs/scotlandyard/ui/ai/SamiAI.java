@@ -109,7 +109,7 @@ public class SamiAI implements PlayerFactory {
 			try {
 				if (mrXAI) {
 					totalValidMoves = getValidMoves(BLACK, m.destination(), view).size();
-				} else totalValidMoves = getValidMoves(RED, m.destination(), view).size();
+				} else totalValidMoves = getValidMoves(m.ticket(), m.destination(), view).size();
 			} catch (Exception e) {
 				totalValidMoves = 1;
 			}
