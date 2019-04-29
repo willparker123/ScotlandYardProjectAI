@@ -124,12 +124,10 @@ public class SamiAI implements PlayerFactory {
 				else return totalDistance;
 			}
 		}
-		//TODO
 		private int score(DoubleMove m, ScotlandYardView view) {
 			return score(m.secondMove(), view);
 			//good score: far from detectives, many validMoves with target node
 		}
-		//TODO
 		private int score(PassMove m, ScotlandYardView view) {
 			return 0;
 			//good score: far from detectives, many validMoves with target node
