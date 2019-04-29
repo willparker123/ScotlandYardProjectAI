@@ -96,14 +96,14 @@ public class SamiAI implements PlayerFactory {
 					if (!view.getPlayerLocation(c).isPresent()) continue;
 					else {
 						//finds critical path to mrX from the player
-						totalDistance+=criticalPath(true, view, m.destination(), view.getPlayerLocation(c).get());
+						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(c).get());
 					}
 				}
 			} else { //for detectives; find the distance to mrX
 					if (!view.getPlayerLocation(view.getCurrentPlayer()).isPresent()) totalDistance+=0;
 					else {
 						//finds critical path to mrX from the move's destination
-						totalDistance+=criticalPath(false, view, m.destination(), view.getPlayerLocation(BLACK).get());
+						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get());
 					}
 			}
 
@@ -119,7 +119,7 @@ public class SamiAI implements PlayerFactory {
 				return totalDistance+totalValidMoves;
 			}
 			else {
-				return totalDistance-totalValidMoves;
+				return (totalDistance*-1)-totalValidMoves;
 			}
 		}
 		private int score(DoubleMove m, ScotlandYardView view) {
@@ -131,38 +131,21 @@ public class SamiAI implements PlayerFactory {
 			//good score: far from detectives, many validMoves with target node
 		}
 
-		private int criticalPath(boolean maximising, ScotlandYardView view, int x, int y) {
-			if (maximising) {
+		private int criticalPath(ScotlandYardView view, int x, int y) {
 				int max = 0;
 				for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
 					int s = 0;
 					while (s<max) {
 						if (e.destination().equals(view.getGraph().getNode(y))) s++;
-						else if (criticalPath(true, view, e.destination().value(), y)<2) {
+						else if (criticalPath(view, e.destination().value(), y)<2) {
 							s+=2;
 						} else {
-							s+=criticalPath(true, view, e.destination().value(), y);
+							s+=criticalPath(view, e.destination().value(), y);
 						}
 					}
 					if (s>max) max = s;
 				}
 				return max;
-			} else {
-				int min = 0;
-				for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
-					int s = 0;
-					while (s>=min) {
-						if (e.destination().equals(view.getGraph().getNode(y))) s++;
-						else if (criticalPath(false, view, e.destination().value(), y)<2) {
-							s+=2;
-						} else {
-							s+=criticalPath(false, view, e.destination().value(), y);
-						}
-					}
-					if (s<min) min = s;
-				}
-				return min;
-			}
 		}
 
 		public int roundRemaining(ScotlandYardView view) {
