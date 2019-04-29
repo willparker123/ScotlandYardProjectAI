@@ -142,6 +142,7 @@ public class SamiAI implements PlayerFactory {
 			for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
 				int s = 0;
 				if (e.destination()==view.getGraph().getNode(y)) s++;
+				else if (e.destination()==view.getGraph().getNode(x)) continue;
 				else {
 					s+=criticalPath(view, e.destination().value(), y);
 				}
