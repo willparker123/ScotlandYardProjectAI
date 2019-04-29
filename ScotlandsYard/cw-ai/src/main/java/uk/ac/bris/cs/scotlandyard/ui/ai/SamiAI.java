@@ -36,10 +36,13 @@ public class SamiAI implements PlayerFactory {
 		private final boolean mrXAI;
 
 		private final Random random = new Random();
+		//bool that changes AI logic for a detective/mrX
 		private MyPlayer(boolean isMrX) {
 			mrXAI = isMrX;
 		}
 
+		//COMPARATOR/GENERICS/CALLBACKS: uses scoreMoves to get a list of scores; sort and pick the last/first element
+		//									(max/min score for mrX/detective respectively) in moves and play that move.
 		@Override
 		public void makeMove(ScotlandYardView view, int location, Set<Move> moves,
 				Consumer<Move> callback) {
@@ -75,6 +78,7 @@ public class SamiAI implements PlayerFactory {
 		}
 
 		private Integer score(Move m, ScotlandYardView view) {
+			//visitor
 			if (m instanceof TicketMove) return score((TicketMove) m, view);
 			else if (m instanceof PassMove) return score((PassMove) m, view);
 			else if (m instanceof DoubleMove) return score((DoubleMove) m, view);
@@ -84,7 +88,7 @@ public class SamiAI implements PlayerFactory {
 		private Integer score(TicketMove m, ScotlandYardView view) {
 			int totalDistance = 0;
 			int totalValidMoves = 0;
-			//for all players, find the distance to mrX from the player
+			//for all players, find the distance to mrX from the player and total these distances up
 			if (mrXAI) {
 				List<Colour> cs = view.getPlayers();
 				for (Colour c : cs) {
@@ -95,7 +99,7 @@ public class SamiAI implements PlayerFactory {
 						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(c).get());
 					}
 				}
-			} else {
+			} else { //for detectives; find the distance to mrX
 				List<Colour> cs = view.getPlayers();
 				for (Colour c : cs) {
 					//skip players with no location
@@ -108,7 +112,7 @@ public class SamiAI implements PlayerFactory {
 			}
 
 			try {
-				if (mrXAI) {
+				if (mrXAI) { //gets the number of valid moves from the move's destination (one-step ahead)
 					totalValidMoves = getValidMoves(BLACK, m.destination(), view).size();
 				} else totalValidMoves = getValidMoves(m.colour(), m.destination(), view).size();
 			} catch (Exception e) {
@@ -133,7 +137,6 @@ public class SamiAI implements PlayerFactory {
 			//good score: far from detectives, many validMoves with target node
 		}
 
-		//TODO
 		private int criticalPath(ScotlandYardView view, int x, int y) {
 			int max = 0;
 			for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
