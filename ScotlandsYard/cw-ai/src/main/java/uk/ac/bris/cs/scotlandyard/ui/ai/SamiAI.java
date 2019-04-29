@@ -100,15 +100,11 @@ public class SamiAI implements PlayerFactory {
 					}
 				}
 			} else { //for detectives; find the distance to mrX
-				List<Colour> cs = view.getPlayers();
-				for (Colour c : cs) {
-					//skip players with no location
-					if (!view.getPlayerLocation(c).isPresent()) continue;
+					if (!view.getPlayerLocation(view.getCurrentPlayer()).isPresent()) totalDistance+=0;
 					else {
 						//finds critical path to mrX from the move's destination
-						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(cs.get(0)).get());
+						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get());
 					}
-				}
 			}
 
 			try {
@@ -141,10 +137,13 @@ public class SamiAI implements PlayerFactory {
 			int max = 0;
 			for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
 				int s = 0;
-				if (e.destination()==view.getGraph().getNode(y)) s++;
-				else if (e.destination()==view.getGraph().getNode(x)) continue;
-				else {
-					s+=criticalPath(view, e.destination().value(), y);
+				while (s<max) {
+					if (e.destination().equals(view.getGraph().getNode(y))) s++;
+					else if (criticalPath(view, e.destination().value(), y)<2) {
+						s+=2;
+					} else {
+						s+=criticalPath(view, e.destination().value(), y);
+					}
 				}
 				if (s>max) max = s;
 			}
