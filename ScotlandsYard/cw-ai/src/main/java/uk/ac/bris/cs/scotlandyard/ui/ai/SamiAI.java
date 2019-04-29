@@ -92,7 +92,7 @@ public class SamiAI implements PlayerFactory {
 					if (!view.getPlayerLocation(c).isPresent()) continue;
 					else {
 						//finds critical path to mrX from the player
-						totalDistance+=criticalPath(m.destination(), view.getPlayerLocation(c).get());
+						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(c).get());
 					}
 				}
 			} else {
@@ -102,7 +102,7 @@ public class SamiAI implements PlayerFactory {
 					if (!view.getPlayerLocation(c).isPresent()) continue;
 					else {
 						//finds critical path to mrX from the move's destination
-						totalDistance+=criticalPath(m.destination(), view.getPlayerLocation(cs.get(0)).get());
+						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(cs.get(0)).get());
 					}
 				}
 			}
@@ -115,7 +115,10 @@ public class SamiAI implements PlayerFactory {
 				totalValidMoves = 1;
 			}
 
-			if (mrXAI) return totalDistance*totalValidMoves;
+			if (mrXAI) {
+				if (totalValidMoves!=0) return totalDistance*totalValidMoves;
+				else return totalDistance;
+			}
 			else {
 				if (totalValidMoves!=0) return totalDistance/totalValidMoves;
 				else return totalDistance;
@@ -133,8 +136,17 @@ public class SamiAI implements PlayerFactory {
 		}
 
 		//TODO
-		private int criticalPath(int x, int y) {
-			return x-y;
+		private int criticalPath(ScotlandYardView view, int x, int y) {
+			int max = 0;
+			for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
+				int s = 0;
+				if (e.destination()==view.getGraph().getNode(y)) s++;
+				else {
+					s+=criticalPath(view, e.destination().value(), y);
+				}
+				if (s>max) max = s;
+			}
+			return max;
 		}
 
 		public int roundRemaining(ScotlandYardView view) {
