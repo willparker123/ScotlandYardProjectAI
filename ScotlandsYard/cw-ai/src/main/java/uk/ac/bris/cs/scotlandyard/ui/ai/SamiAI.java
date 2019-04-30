@@ -146,7 +146,7 @@ public class SamiAI implements PlayerFactory {
 					else {
 						//if mrx has a location
 						if (view.getPlayerLocation(view.getPlayers().get(0)).isPresent()) {
-							totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get());
+							totalDistance+=criticalPath(view, m.destination(), mrXLastLocation);
 						} else { //mrx no location
 							totalDistance+=1;
 						}
@@ -157,9 +157,9 @@ public class SamiAI implements PlayerFactory {
 				return totalDistance+totalValidMoves+distanceFromStartNode;
 			} else {
 				if (totalDistance!=0) {
-					return (totalValidMoves/totalDistance);
+					return (totalValidMoves+distanceFromStartNode)/totalDistance;
 				} else {
-					return totalValidMoves;
+					return totalValidMoves+distanceFromStartNode;
 				}
 			}
 		}
