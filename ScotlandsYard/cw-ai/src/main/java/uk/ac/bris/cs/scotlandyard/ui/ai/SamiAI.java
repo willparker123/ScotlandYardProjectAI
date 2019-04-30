@@ -34,6 +34,7 @@ public class SamiAI implements PlayerFactory {
 	private static class MyPlayer implements Player {
 		//executes different move decider logic depending on if this is true or false
 		private final boolean mrXAI;
+		private final int mrXLastLocation = 0;
 
 		private final Random random = new Random();
 		//bool that changes AI logic for a detective/mrX
@@ -50,15 +51,38 @@ public class SamiAI implements PlayerFactory {
 			ArrayList<Integer> moveScoresSorted = moveScores;
 			Collections.sort(moveScoresSorted);
 			int moveIndex;
+			moveIndex = moveScores.indexOf(moveScoresSorted.get(0)); //max score move
 
-			if (mrXAI) {
-				moveIndex = moveScores.indexOf(moveScoresSorted.get(0)); //max score move
+			//EXTRA DETECTIVE AI LOGIC
+			if (!mrXAI && mrXLastLocation==view.getPlayerLocation(BLACK).get()) {
+				callback.accept(new ArrayList<>(moves).get(scoreMovesMrXSecret(view, location, moves))); //picks max score move
 			} else {
-				moveIndex = moveScores.indexOf(moveScoresSorted.get(moveScores.size()-1)); //min score move
+				callback.accept(new ArrayList<>(moves).get(moveIndex)); //picks max score move
 			}
+		}
 
-			// picks a move
-			callback.accept(new ArrayList<>(moves).get(moveIndex));
+		//scores moves for when mrX's last location is his location this round and returns the index of the original
+		//		moveset to choose the optimal move from for a detective AI
+		private int scoreMovesMrXSecret(ScotlandYardView view, int location, Set<Move> moves) {
+			ArrayList<Integer> sortedScoresMrX = scoreMoves(view, mrXLastLocation, getValidMoves(BLACK, mrXLastLocation, view));
+			Collections.sort(sortedScoresMrX);
+			ArrayList<Integer> scoresMrX = scoreMoves(view, mrXLastLocation, getValidMoves(BLACK, mrXLastLocation, view));
+			ArrayList<Move> arrayMoves = new ArrayList<>(getValidMoves(BLACK, mrXLastLocation, view));
+			Move bestMrXMove = arrayMoves.get(scoresMrX.indexOf(sortedScoresMrX.get(0)));
+			int bestMoveIndex = 0;
+			ArrayList<Integer> scores = new ArrayList<>();
+			for (Move m : moves) {
+				if (m instanceof TicketMove) {
+					if (bestMrXMove instanceof TicketMove) {
+						scores.add(criticalPath(view, ((TicketMove) bestMrXMove).destination(), location));
+					} else if (bestMrXMove instanceof DoubleMove) {
+						scores.add(criticalPath(view, ((DoubleMove) bestMrXMove).secondMove().destination(), location));
+					} else scores.add(100);
+				} else scores.add(100);
+			}
+			ArrayList<Integer> sortedScores = new ArrayList<>(scores);
+			Collections.sort(sortedScores);
+			return scores.indexOf(sortedScores.get(sortedScores.size()-1));
 		}
 
 		//scores moves (high = best move, low = worst move)
@@ -72,11 +96,6 @@ public class SamiAI implements PlayerFactory {
 			return scores;
 		}
 
-		//TODO
-		private ArrayList<Integer> sortScores(ArrayList<Integer> scores) {
-			return scores;
-		}
-
 		private Integer score(Move m, ScotlandYardView view) {
 			//visitor
 			if (m instanceof TicketMove) return score((TicketMove) m, view);
@@ -84,12 +103,22 @@ public class SamiAI implements PlayerFactory {
 			else if (m instanceof DoubleMove) return score((DoubleMove) m, view);
 			else return 0;
 		}
+
 		//good score: far from detectives, many validMoves with target node
 		private Integer score(TicketMove m, ScotlandYardView view) {
 			int totalDistance = 0;
 			int totalValidMoves = 0;
+
+			try {
+				if (m.colour().isMrX()) { //gets the number of valid moves from the move's destination (one-step ahead)
+					totalValidMoves = getValidMoves(BLACK, m.destination(), view).size();
+				} else totalValidMoves = getValidMoves(m.colour(), m.destination(), view).size();
+			} catch (Exception e) {
+				totalValidMoves = 1;
+			}
+
 			//for all players, find the distance to mrX from the player and total these distances up
-			if (mrXAI) {
+			if (m.colour().isMrX()) { //AI MRX LOGIC
 				List<Colour> cs = view.getPlayers();
 				for (Colour c : cs) {
 					//skip players with no location
@@ -99,27 +128,27 @@ public class SamiAI implements PlayerFactory {
 						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(c).get());
 					}
 				}
-			} else { //for detectives; find the distance to mrX
+			}	//AI DETECTIVE LOGIC
+			else { //for detectives; find the distance to mrX
 					if (!view.getPlayerLocation(view.getCurrentPlayer()).isPresent()) totalDistance+=0;
 					else {
-						//finds critical path to mrX from the move's destination
-						totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get());
+						//if mrx has a location
+						if (view.getPlayerLocation(view.getPlayers().get(0)).isPresent()) {
+							totalDistance+=criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get());
+						} else { //mrx no location
+							totalDistance+=1;
+						}
 					}
 			}
 
-			try {
-				if (mrXAI) { //gets the number of valid moves from the move's destination (one-step ahead)
-					totalValidMoves = getValidMoves(BLACK, m.destination(), view).size();
-				} else totalValidMoves = getValidMoves(m.colour(), m.destination(), view).size();
-			} catch (Exception e) {
-				totalValidMoves = 1;
-			}
-
-			if (mrXAI) {
+			if (m.colour().isMrX()) {
 				return totalDistance+totalValidMoves;
-			}
-			else {
-				return (totalDistance*-1)-totalValidMoves;
+			} else {
+				if (totalDistance!=0) {
+					return totalValidMoves/totalDistance;
+				} else {
+					return totalValidMoves;
+				}
 			}
 		}
 		private int score(DoubleMove m, ScotlandYardView view) {

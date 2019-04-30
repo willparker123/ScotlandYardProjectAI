@@ -334,7 +334,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
             }
         }
         update(this, getCurrentRound());
-        currentRoundIndex++;
+        if (currentRoundIndex+1<getRounds().size()) {
+            currentRoundIndex++;
+        } else {
+            currentRoundIndex = getRounds().size();
+        }
         cplayer.removeTicket(DOUBLE);
         dbMove = false;
         dbMoveRound = true;
@@ -373,7 +377,11 @@ public class ScotlandYardModel implements ScotlandYardGame, Consumer<Move>, Move
             update(this, tm);
             if (!dbMove) {
                 update(this, getCurrentRound());
-                currentRoundIndex++;
+                if (currentRoundIndex+1<getRounds().size()) {
+                    currentRoundIndex++;
+                } else {
+                    currentRoundIndex = getRounds().size();
+                }
             }
         }
     }
