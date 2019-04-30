@@ -34,7 +34,8 @@ public class SamiAI implements PlayerFactory {
 	private static class MyPlayer implements Player {
 		//executes different move decider logic depending on if this is true or false
 		private final boolean mrXAI;
-		private final int mrXLastLocation = 0;
+		private int mrXLastLocation = 0;
+		private ArrayList<Integer> mrXLastLocations = new ArrayList<>();
 
 		private final Random random = new Random();
 		//bool that changes AI logic for a detective/mrX
@@ -52,6 +53,15 @@ public class SamiAI implements PlayerFactory {
 			Collections.sort(moveScoresSorted);
 			int moveIndex;
 			moveIndex = moveScores.indexOf(moveScoresSorted.get(0)); //max score move
+			try {
+				if (!view.getPlayerLocation(BLACK).isPresent()) mrXLastLocations.add(0);
+				else mrXLastLocations.add(view.getPlayerLocation(BLACK).get());
+			} catch (NullPointerException e) {
+				mrXLastLocations.add(0);
+			}
+			if (view.getCurrentRound()>mrXLastLocations.size()-1) {
+				mrXLastLocation = mrXLastLocations.get(mrXLastLocations.size()-1);
+			} else mrXLastLocation = mrXLastLocations.get(view.getCurrentRound());
 
 			//EXTRA DETECTIVE AI LOGIC
 			if (!mrXAI && mrXLastLocation==view.getPlayerLocation(BLACK).get()) {
@@ -69,7 +79,6 @@ public class SamiAI implements PlayerFactory {
 			ArrayList<Integer> scoresMrX = scoreMoves(view, mrXLastLocation, getValidMoves(BLACK, mrXLastLocation, view));
 			ArrayList<Move> arrayMoves = new ArrayList<>(getValidMoves(BLACK, mrXLastLocation, view));
 			Move bestMrXMove = arrayMoves.get(scoresMrX.indexOf(sortedScoresMrX.get(0)));
-			int bestMoveIndex = 0;
 			ArrayList<Integer> scores = new ArrayList<>();
 			for (Move m : moves) {
 				if (m instanceof TicketMove) {
@@ -108,6 +117,7 @@ public class SamiAI implements PlayerFactory {
 		private Integer score(TicketMove m, ScotlandYardView view) {
 			int totalDistance = 0;
 			int totalValidMoves = 0;
+			int distanceFromStartNode = criticalPath(view, m.destination(), view.getPlayerLocation(m.colour()).get());
 
 			try {
 				if (m.colour().isMrX()) { //gets the number of valid moves from the move's destination (one-step ahead)
@@ -142,10 +152,10 @@ public class SamiAI implements PlayerFactory {
 			}
 
 			if (m.colour().isMrX()) {
-				return totalDistance+totalValidMoves;
+				return totalDistance+totalValidMoves+distanceFromStartNode;
 			} else {
 				if (totalDistance!=0) {
-					return totalValidMoves/totalDistance;
+					return (totalValidMoves/totalDistance);
 				} else {
 					return totalValidMoves;
 				}
@@ -164,12 +174,12 @@ public class SamiAI implements PlayerFactory {
 				int max = 0;
 				for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
 					int s = 0;
-					while (s<max) {
+					while (s<max || s==0) {
+						if (x==y) s = 0;
 						if (e.destination().equals(view.getGraph().getNode(y))) s++;
-						else if (criticalPath(view, e.destination().value(), y)<2) {
-							s+=2;
-						} else {
-							s+=criticalPath(view, e.destination().value(), y);
+						else {
+								//int ss = criticalPath(view, e.destination().value(), y);
+								s+=2;
 						}
 					}
 					if (s>max) max = s;
