@@ -36,6 +36,15 @@ public class SamiAI implements PlayerFactory {
 		private final boolean mrXAI;
 		private int mrXLastLocation = 0;
 		private ArrayList<Integer> mrXLastLocations = new ArrayList<>();
+		private int thisLastLocation = 0;
+		private ArrayList<Integer> thisLastLocations = new ArrayList<>();
+
+		//global coefficients for numValidMoves, numDistanceToEnemy, numDistanceTravelled
+		// (0<v<5, 1<d<4, 0<l<2)
+		private double cV = 2;
+		private double cD = 1;
+		private double cL = 2;
+
 
 		private final Random random = new Random();
 		//bool that changes AI logic for a detective/mrX
@@ -53,21 +62,57 @@ public class SamiAI implements PlayerFactory {
 			Collections.sort(moveScoresSorted);
 			int moveIndex;
 			moveIndex = moveScores.indexOf(moveScoresSorted.get(0)); //max score move
+
+			//logic to avoid going back and forth between nodes
 			try {
-				if (!view.getPlayerLocation(BLACK).isPresent()) mrXLastLocations.add(0);
-				else mrXLastLocations.add(view.getPlayerLocation(BLACK).get());
-			} catch (NullPointerException e) {
-				mrXLastLocations.add(0);
-			}
-			if (view.getCurrentRound()>mrXLastLocations.size()-1) {
-				mrXLastLocation = mrXLastLocations.get(mrXLastLocations.size()-1);
-			} else mrXLastLocation = mrXLastLocations.get(view.getCurrentRound());
+				//seemingly better performance if mrX AI can loop (back and forth between nodes)
+				if (((TicketMove) new ArrayList<>(moves).get(moveIndex)).destination()==
+						thisLastLocations.get(view.getCurrentRound()-2)
+						&& new ArrayList<>(moves).get(moveIndex) instanceof TicketMove
+						&& view.getCurrentPlayer().isDetective()) {
+					for (int i=0;i<moveScores.size();i++) {
+						if (((TicketMove) new ArrayList<>(moves).get(moveIndex)).destination()==
+								thisLastLocations.get(view.getCurrentRound()-2)) {
+							continue;
+						} else {
+							moveIndex = moveScores.indexOf(moveScoresSorted.get(i)); //second-to-max score move (avoiding loop)
+							break;
+						}
+					}
+				}
+			} catch (Exception e) { }
+
+			updateLastLocations(view);
+
+			if (view.getCurrentRound()-2<0 && view.getPlayerLocation(BLACK).isPresent()) {
+				mrXLastLocation = view.getPlayerLocation(BLACK).get();
+			} else if (view.getCurrentRound()-2<0) {
+				mrXLastLocation = 0;
+			} else mrXLastLocation = mrXLastLocations.get(view.getCurrentRound()-2);
 
 			//EXTRA DETECTIVE AI LOGIC
 			if (!mrXAI && mrXLastLocation==view.getPlayerLocation(BLACK).get()) {
 				callback.accept(new ArrayList<>(moves).get(scoreMovesMrXSecret(view, location, moves))); //picks max score move
 			} else {
 				callback.accept(new ArrayList<>(moves).get(moveIndex)); //picks max score move
+			}
+		}
+
+		private void updateLastLocations(ScotlandYardView view) {
+			try {
+				while (view.getCurrentRound()!=mrXLastLocations.size()) {
+					if (!view.getPlayerLocation(BLACK).isPresent()) mrXLastLocations.add(0);
+					else mrXLastLocations.add(view.getPlayerLocation(BLACK).get());
+				}
+			} catch (NullPointerException e) {
+				mrXLastLocations.add(0);
+			}
+
+			try {
+				if (!view.getPlayerLocation(view.getCurrentPlayer()).isPresent()) thisLastLocations.add(0);
+				else thisLastLocations.add(view.getPlayerLocation(view.getCurrentPlayer()).get());
+			} catch (NullPointerException e) {
+				thisLastLocations.add(0);
 			}
 		}
 
@@ -93,7 +138,7 @@ public class SamiAI implements PlayerFactory {
 			}
 			ArrayList<Double> sortedScores = new ArrayList<>(scores);
 			Collections.sort(sortedScores);
-			return scores.indexOf(sortedScores.get(sortedScores.size()-1));
+			return scores.indexOf(sortedScores.get(0));
 		}
 
 		//scores moves (high = best move, low = worst move)
@@ -104,6 +149,7 @@ public class SamiAI implements PlayerFactory {
 			while (iterator.hasNext()) {
 				scores.add(score(iterator.next(), view));
 			}
+
 			return scores;
 		}
 
@@ -154,13 +200,9 @@ public class SamiAI implements PlayerFactory {
 			}
 
 			if (m.colour().isMrX()) {
-				return totalDistance+totalValidMoves+distanceFromStartNode;
+				return (cV*cV*totalValidMoves)+(cD*totalDistance)+(cL*distanceFromStartNode);
 			} else {
-				if (totalDistance!=0) {
-					return (totalValidMoves+distanceFromStartNode)/totalDistance;
-				} else {
-					return totalValidMoves+distanceFromStartNode;
-				}
+				return (cV*totalValidMoves)-(cD*totalDistance)+(cL*distanceFromStartNode);
 			}
 		}
 		private double score(DoubleMove m, ScotlandYardView view) {

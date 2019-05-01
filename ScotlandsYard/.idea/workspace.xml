@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="BookmarkManager">
-    <bookmark url="file://$PROJECT_DIR$/cw-ai/src/main/java/uk/ac/bris/cs/scotlandyard/ui/ai/SamiAI.java" line="50" mnemonic="9" />
+    <bookmark url="file://$PROJECT_DIR$/cw-ai/src/main/java/uk/ac/bris/cs/scotlandyard/ui/ai/SamiAI.java" line="59" mnemonic="9" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="497fd035-2409-40d3-b22e-b446e06c7414" name="Default Changelist" comment="" />
@@ -24,14 +24,33 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/cw-ai/src/main/java/uk/ac/bris/cs/scotlandyard/ui/ai/SamiAI.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="66">
-              <caret line="135" column="44" selection-start-line="135" selection-start-column="44" selection-end-line="135" selection-end-column="44" />
+            <state relative-caret-position="168">
+              <caret line="203" column="20" lean-forward="true" selection-start-line="203" selection-start-column="20" selection-end-line="203" selection-end-column="20" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#1279#1280#0" expanded="true" />
                 <element signature="e#1301#1302#0" expanded="true" />
-                <element signature="e#7623#7624#0" expanded="true" />
+                <element signature="e#8835#8836#0" expanded="true" />
+                <element signature="e#8899#8900#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="jar://$MAVEN_REPOSITORY$/uk/ac/bris/cs/scotlandyard-api/0.0.1-SNAPSHOT/scotlandyard-api-0.0.1-SNAPSHOT.jar!/uk/ac/bris/cs/scotlandyard/model/ScotlandYardView.class">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="181">
+              <caret line="15" column="33" lean-forward="true" selection-start-line="15" selection-start-column="33" selection-end-line="15" selection-end-column="33" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="jar://C:/Program Files/Java/jdk-12/lib/src.zip!/java.base/java/lang/Integer.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="161">
+              <caret line="63" column="19" selection-start-line="63" selection-start-column="19" selection-end-line="63" selection-end-column="19" />
             </state>
           </provider>
         </entry>
@@ -110,6 +129,8 @@
       <find>Edge</find>
       <find>criticalPath</find>
       <find>sortSco</find>
+      <find>0</find>
+      <find>moveScoresSorted.size()-</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -154,7 +175,7 @@
       <select />
     </treeState>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
+  <component name="ProjectFrameBounds" extendedState="7">
     <option name="x" value="560" />
     <option name="y" value="-35" />
     <option name="width" value="980" />
@@ -427,8 +448,8 @@
     <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.4990177" visible="true" weight="0.26644295" />
-      <window_info id="Structure" order="1" sideWeight="0.50098234" side_tool="true" visible="true" weight="0.26644295" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.8212181" visible="true" weight="0.26644295" />
+      <window_info id="Structure" order="1" sideWeight="0.17878193" side_tool="true" visible="true" weight="0.26644295" />
       <window_info id="Image Layers" order="2" />
       <window_info id="Designer" order="3" />
       <window_info id="UI Designer" order="4" />
@@ -436,7 +457,7 @@
       <window_info id="Favorites" order="6" sideWeight="0.50098234" side_tool="true" weight="0.26644295" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.3286119" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.49932885" visible="true" weight="0.27903682" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49932885" visible="true" weight="0.27903682" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -632,15 +653,30 @@
         </state>
       </provider>
     </entry>
+    <entry file="jar://$MAVEN_REPOSITORY$/uk/ac/bris/cs/scotlandyard-api/0.0.1-SNAPSHOT/scotlandyard-api-0.0.1-SNAPSHOT.jar!/uk/ac/bris/cs/scotlandyard/model/ScotlandYardView.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="181">
+          <caret line="15" column="33" lean-forward="true" selection-start-line="15" selection-start-column="33" selection-end-line="15" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://C:/Program Files/Java/jdk-12/lib/src.zip!/java.base/java/lang/Integer.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="161">
+          <caret line="63" column="19" selection-start-line="63" selection-start-column="19" selection-end-line="63" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/cw-ai/src/main/java/uk/ac/bris/cs/scotlandyard/ui/ai/SamiAI.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="66">
-          <caret line="135" column="44" selection-start-line="135" selection-start-column="44" selection-end-line="135" selection-end-column="44" />
+        <state relative-caret-position="168">
+          <caret line="203" column="20" lean-forward="true" selection-start-line="203" selection-start-column="20" selection-end-line="203" selection-end-column="20" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#1279#1280#0" expanded="true" />
             <element signature="e#1301#1302#0" expanded="true" />
-            <element signature="e#7623#7624#0" expanded="true" />
+            <element signature="e#8835#8836#0" expanded="true" />
+            <element signature="e#8899#8900#0" expanded="true" />
           </folding>
         </state>
       </provider>
