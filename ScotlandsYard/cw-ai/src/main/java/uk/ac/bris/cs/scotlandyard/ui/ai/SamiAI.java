@@ -43,7 +43,7 @@ public class SamiAI implements PlayerFactory {
 		// (0<v<5, 1<d<4, 0<l<2)
 		private double cV = 1; //2
 		private double cD = 1; //1
-		private double cL = 0; //2
+		private double cL = 1.5; //2
 
 
 		private final Random random = new Random();
@@ -241,7 +241,9 @@ public class SamiAI implements PlayerFactory {
 			}
 
 			if (m.colour().isMrX()) {
-				return (cV*view.getPlayers().size()*totalValidMoves)+(cD*totalDistance)+(cL*distanceFromStartNode);
+				if (totalDistance<(2*(view.getPlayers().size()-1))) {
+					return (cV*view.getPlayers().size()*totalValidMoves)+(cD*totalDistance)+(cL*distanceFromStartNode);
+				} else return (cV*totalValidMoves*totalValidMoves*totalValidMoves)+(cL*distanceFromStartNode);
 			} else {
 				if (criticalPath(view, m.destination(), view.getPlayerLocation(BLACK).get())==1) {
 					return 100;
