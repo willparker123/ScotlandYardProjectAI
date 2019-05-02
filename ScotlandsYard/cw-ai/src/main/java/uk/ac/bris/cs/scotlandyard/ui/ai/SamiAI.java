@@ -41,9 +41,9 @@ public class SamiAI implements PlayerFactory {
 
 		//global coefficients for numValidMoves, numDistanceToEnemy, numDistanceTravelled
 		// (0<v<5, 1<d<4, 0<l<2)
-		private double cV = 2;
-		private double cD = 1;
-		private double cL = 2;
+		private double cV = 0.5; //2
+		private double cD = 1; //1
+		private double cL = 0.5; //2
 
 
 		private final Random random = new Random();
@@ -59,7 +59,12 @@ public class SamiAI implements PlayerFactory {
 				Consumer<Move> callback) {
 			ArrayList<Double> moveScores = scoreMoves(view, location, moves);
 			ArrayList<Double> moveScoresSorted = moveScores;
-			Collections.sort(moveScoresSorted);
+			Collections.sort(moveScoresSorted, new Comparator<Double>() {
+				@Override
+				public int compare(Double c1, Double c2) {
+					return Double.compare(c1.doubleValue(), c2.doubleValue());
+				}
+			});
 			int moveIndex;
 			moveIndex = moveScores.indexOf(moveScoresSorted.get(0)); //max score move
 
@@ -120,7 +125,12 @@ public class SamiAI implements PlayerFactory {
 		//		moveset to choose the optimal move from for a detective AI
 		private int scoreMovesMrXSecret(ScotlandYardView view, int location, Set<Move> moves) {
 			ArrayList<Double> sortedScoresMrX = scoreMoves(view, mrXLastLocation, getValidMoves(BLACK, mrXLastLocation, view));
-			Collections.sort(sortedScoresMrX);
+			Collections.sort(sortedScoresMrX, new Comparator<Double>() {
+				@Override
+				public int compare(Double c1, Double c2) {
+					return Double.compare(c1.doubleValue(), c2.doubleValue());
+				}
+			});
 			ArrayList<Double> scoresMrX = scoreMoves(view, mrXLastLocation, getValidMoves(BLACK, mrXLastLocation, view));
 			ArrayList<Move> arrayMoves = new ArrayList<>(getValidMoves(BLACK, mrXLastLocation, view));
 			Move bestMrXMove;
@@ -130,14 +140,38 @@ public class SamiAI implements PlayerFactory {
 			for (Move m : moves) {
 				if (m instanceof TicketMove) {
 					if (bestMrXMove instanceof TicketMove) {
-						scores.add(criticalPath(view, ((TicketMove) bestMrXMove).destination(), location));
+						double i = 0;
+						for (Colour c : view.getPlayers()) {
+							try {
+								if (c.isDetective()) {
+									i+=criticalPath(view, ((TicketMove) bestMrXMove).destination(),
+											view.getPlayerLocation(c).get());
+								}
+							} catch (Exception e) {i+=0;}
+						}
+						scores.add(i);
 					} else if (bestMrXMove instanceof DoubleMove) {
 						scores.add(criticalPath(view, ((DoubleMove) bestMrXMove).secondMove().destination(), location));
+						double i = 0;
+						for (Colour c : view.getPlayers()) {
+							try {
+								if (c.isDetective()) {
+									i+=criticalPath(view, ((DoubleMove) bestMrXMove).secondMove().destination(),
+											view.getPlayerLocation(c).get());
+								}
+							} catch (Exception e) {i+=0;}
+						}
+						scores.add(i);
 					} else scores.add(100.0);
 				} else scores.add(100.0);
 			}
 			ArrayList<Double> sortedScores = new ArrayList<>(scores);
-			Collections.sort(sortedScores);
+			Collections.sort(sortedScores, new Comparator<Double>() {
+				@Override
+				public int compare(Double c1, Double c2) {
+					return Double.compare(c1.doubleValue(), c2.doubleValue());
+				}
+			});
 			return scores.indexOf(sortedScores.get(0));
 		}
 
@@ -148,9 +182,7 @@ public class SamiAI implements PlayerFactory {
 			Iterator<Move> iterator = moves.iterator();
 			while (iterator.hasNext()) {
 				scores.add(score(iterator.next(), view));
-			}
-
-			return scores;
+			} return scores;
 		}
 
 		private double score(Move m, ScotlandYardView view) {
@@ -164,7 +196,7 @@ public class SamiAI implements PlayerFactory {
 		//good score: far from detectives, many validMoves with target node
 		private double score(TicketMove m, ScotlandYardView view) {
 			int totalDistance = 0;
-			int totalValidMoves = 0;
+			int totalValidMoves;
 			double distanceFromStartNode = criticalPath(view, m.destination(), view.getPlayerLocation(m.colour()).get());
 
 			try {
@@ -202,7 +234,7 @@ public class SamiAI implements PlayerFactory {
 			if (m.colour().isMrX()) {
 				return (cV*cV*totalValidMoves)+(cD*totalDistance)+(cL*distanceFromStartNode);
 			} else {
-				return (cV*totalValidMoves)-(cD*totalDistance)+(cL*distanceFromStartNode);
+				return (cV*0.5*totalValidMoves)-(cD*totalDistance)+(cL*distanceFromStartNode);
 			}
 		}
 		private double score(DoubleMove m, ScotlandYardView view) {
@@ -215,20 +247,30 @@ public class SamiAI implements PlayerFactory {
 		}
 
 		private double criticalPath(ScotlandYardView view, int x, int y) {
-			double max = 0;
+			double max = 3;
 				for (Edge<Integer, Transport> e: view.getGraph().getEdgesFrom(view.getGraph().getNode(x))) {
 					int s = 0;
 					while (s<max || s==0) {
 						if (x==y) s = 0;
-						if (e.destination().equals(view.getGraph().getNode(y))) s++;
+						if (e.destination().equals(view.getGraph().getNode(y))) s=1;
 						else {
-								//int ss = criticalPath(view, e.destination().value(), y);
-								s+=2;
+							s+=lookAhead(e, view, y);
 						}
+						if (s<=max) max = s;
 					}
-					if (s>max) max = s;
+				} return max;
+		}
+
+		private int lookAhead(Edge<Integer, Transport> e, ScotlandYardView view, int y) {
+			ArrayList<Edge<Integer, Transport>> edges =
+					new ArrayList<>(view.getGraph().getEdgesFrom(e.destination()));
+			for (Edge<Integer, Transport> edge : edges)	{
+				if (edge.destination()==e.destination()) continue;
+				else if (edge.destination().value()==y) {
+					return 2;
 				}
-				return max;
+			}
+			return 3;
 		}
 
 		public int roundRemaining(ScotlandYardView view) {
